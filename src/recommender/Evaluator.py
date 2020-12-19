@@ -152,8 +152,7 @@ class Evaluator:
             res.append(_eval_by_user(user, current_prediction))
 
         hr, ndcg, auc, prec, rec = (np.array(res).mean(axis=0)).tolist()
-        print_results = "%s \tTrain Time: %s \tValidation Time: %s \tMetrics@%d\n\t\tHR\tnDCG\tAUC\tPrec\tRec\n\t\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (
-            epoch_text,
+        print_results = "(Shuffle +) Train Time: %s \tInference Time: %s\n\tMetrics@%d\n\t\tHR\tnDCG\tAUC\tPrec\tRec\n\t\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (
             datetime.timedelta(seconds=(time() - start_time)),
             datetime.timedelta(seconds=(time() - eval_start_time)),
             _K,
@@ -173,7 +172,7 @@ class Evaluator:
         attack_name: The name for the attack stored file
         :return:
         """
-        results = self.model.get_full_inference().numpy()
+        results = self.model.predict_all().numpy()
         with open('{0}{1}ep_{2}_best{3}_top{4}_rec.tsv'.format(self.model.path_output_rec_result,
                                                                attack_name + self.model.path_output_rec_result.split('/')[-2],
                                                                epoch,

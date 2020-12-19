@@ -5,6 +5,7 @@ import logging
 from time import time
 from copy import deepcopy
 
+
 np.random.seed(0)
 logging.disable(logging.WARNING)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -16,6 +17,8 @@ from src.recommender.RecommenderModel import RecommenderModel
 
 from src.util.write import save_obj
 from src.util.read import find_checkpoint
+from src.util.timer import timer
+
 
 
 class BPRMF(RecommenderModel):
@@ -123,6 +126,7 @@ class BPRMF(RecommenderModel):
         :param batches: set of batches used fr the training
         :return:
         """
+        st = time()
         user_input, item_input_pos, item_input_neg = batches
         epoch_loss = 0
 
@@ -152,7 +156,7 @@ class BPRMF(RecommenderModel):
             gradients = t.gradient(self.loss_opt, [self.item_bias, self.embedding_P, self.embedding_Q])
             self.optimizer.apply_gradients(zip(gradients, [self.item_bias, self.embedding_P, self.embedding_Q]))
 
-            return epoch_loss
+        return epoch_loss, timer(st, time())
 
     def train(self):
 
@@ -176,18 +180,21 @@ class BPRMF(RecommenderModel):
             # The epoch counts from 1 ton N
             start_ep = time()
             batches = self.data.shuffle(self.batch_size)
-            epoch_loss = self._train_step(batches)
-            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Sum of batch losses)'.format(epoch, self.epochs, epoch_loss)
-
-            epoch_print = self.evaluator.eval(epoch, results, epoch_text, start_ep)
-
-            for metric in max_metrics.keys():
-                if max_metrics[metric] <= results[epoch][metric][self.evaluator.k - 1]:
-                    max_metrics[metric] = results[epoch][metric][self.evaluator.k - 1]
-                    if metric == self.best_metric:
-                        best_epoch, best_model, best_epoch_print = epoch, deepcopy(self), epoch_print
+            epoch_loss, epoch_time = self._train_step(batches)
+            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Sum of batch losses) in '.format(epoch, self.epochs, epoch_loss, epoch_time)
+            print(epoch_text)
 
             if epoch % self.verbose == 0 or epoch == 1:
+                # Eval Model
+                epoch_eval_print = self.evaluator.eval(epoch, results, epoch_text, start_ep)
+
+                # Updated Best Metrics
+                for metric in max_metrics.keys():
+                    if max_metrics[metric] <= results[epoch][metric][self.evaluator.k - 1]:
+                        max_metrics[metric] = results[epoch][metric][self.evaluator.k - 1]
+                        if metric == self.best_metric:
+                            best_epoch, best_model, best_epoch_print = epoch, deepcopy(self), epoch_eval_print
+
                 # Save Model
                 saver_ckpt.save('{0}/weights-{1}'.format(self.path_output_rec_weight, epoch))
                 # Save Rec Lists
@@ -196,7 +203,8 @@ class BPRMF(RecommenderModel):
         print('Training Ended')
 
         print("Store The Results of the Training")
-        save_obj(results, '{0}/{1}-results'.format(self.path_output_rec_result, self.path_output_rec_result.split('/')[-2]))
+        save_obj(results,
+                 '{0}/{1}-results'.format(self.path_output_rec_result, self.path_output_rec_result.split('/')[-2]))
 
         print("Store Best Model at Epoch {0}".format(best_epoch))
         saver_ckpt = tf.train.Checkpoint(optimizer=self.optimizer, model=best_model)
@@ -254,62 +262,6 @@ class BPRMF(RecommenderModel):
         self.delta_P = tf.nn.l2_normalize(grad_P, 1) * self.eps
         self.delta_Q = tf.nn.l2_normalize(grad_Q, 1) * self.eps
 
-    def iterative_perturbation(self, user_input, item_input_pos, item_input_neg, batch_idx=0):
-        """
-        Evaluate Adversarial Perturbation with Iterative-like Approach
-        :param user_input:
-        :param item_input_pos:
-        :param item_input_neg:
-        :param batch_idx:
-        :return:
-        """
-        for _ in range(self.iteration):
-            with tf.GradientTape() as tape_adv:
-                tape_adv.watch([self.embedding_P, self.embedding_Q])
-                # Clean Inference
-                output_pos, beta_pos, embed_p_pos, embed_q_pos = self(user_input[batch_idx],
-                                                                      item_input_pos[batch_idx])
-                output_neg, beta_neg, embed_p_neg, embed_q_neg = self(user_input[batch_idx],
-                                                                      item_input_neg[batch_idx])
-                result = tf.clip_by_value(output_pos - output_neg, -80.0, 1e8)
-                loss = tf.reduce_sum(tf.nn.softplus(-result))
-                loss += self.reg * tf.reduce_mean(
-                    tf.square(embed_p_pos) + tf.square(embed_q_pos) + tf.square(embed_q_neg))
-
-            grad_P, grad_Q = tape_adv.gradient(loss, [self.embedding_P, self.embedding_Q])
-            grad_P, grad_Q = tf.stop_gradient(grad_P), tf.stop_gradient(grad_Q)
-            self.step_delta_P = tf.nn.l2_normalize(grad_P, 1) * self.step_size
-            self.step_delta_Q = tf.nn.l2_normalize(grad_Q, 1) * self.step_size
-
-            # Clipping perturbation eta to norm norm ball
-            # eta = adv_x - x
-            # eta = clip_eta(eta, norm, eps)
-            # adv_x = x + eta
-
-            # L2 NORM on P
-            # self.norm_P = tf.sqrt(tf.maximum(1e-12, tf.reduce_sum(tf.square(self.step_delta_P),
-            #                                                       list(range(1, len(self.step_delta_P.get_shape()))),
-            #                                                       keepdims=True)))
-            # # We must *clip* to within the norm ball, not *normalize* onto the surface of the ball
-            # self.factor_P = tf.minimum(1., tf.divide(self.eps, self.norm_P))
-            #
-            # # L2 NORM on Q
-            # self.norm_Q = tf.sqrt(tf.maximum(1e-12, tf.reduce_sum(tf.square(self.step_delta_Q),
-            #                                                       list(range(1, len(self.step_delta_Q.get_shape()))),
-            #                                                       keepdims=True)))
-            # self.factor_Q = tf.minimum(1., tf.divide(self.eps, self.norm_Q))
-            #
-            # self.delta_P = self.delta_P + self.step_delta_P * self.factor_P
-            # self.delta_Q = self.delta_Q + self.step_delta_Q * self.factor_Q
-
-            self.delta_P = tf.clip_by_value(self.delta_P + self.step_delta_P, -self.adv_eps, self.adv_eps)
-            self.delta_Q = tf.clip_by_value(self.delta_Q + self.step_delta_Q, -self.adv_eps, self.adv_eps)
-
-            if np.any(self.delta_P > self.adv_eps) or np.any(self.delta_Q > self.adv_eps):
-                print('Test Pert.\nP is out the clip? {0}\nQ is out the clip? {1} \n- MAX P {2} - Q {3}'.format(
-                    np.any(self.delta_P > self.adv_eps), np.any(self.delta_Q > self.adv_eps),
-                    np.max(self.delta_P), np.max(self.delta_Q)))
-
     def attack_full_fgsm(self, attack_eps, attack_name=""):
         """
         Create FGSM ATTACK
@@ -330,48 +282,6 @@ class BPRMF(RecommenderModel):
         print('After Attack Performance.')
         self.evaluator.eval(self.restore_epochs, results, 'BEST MODEL ' if self.best else str(self.restore_epochs))
         self.evaluator.store_recommendation(attack_name=attack_name)
-        save_obj(results, '{0}/{1}-results'.format(self.path_output_rec_result,
-                                                   attack_name + self.path_output_rec_result.split('/')[
-                                                       -2] + '_best{0}'.format(self.best)))
-
-        print('{0} - Completed!'.format(attack_name))
-
-    def attack_full_iterative(self, attack_type, attack_iteration, attack_eps, attack_step_size, initial=1,
-                              attack_name=""):
-        """
-        ITERATIVE ATTACKS (BIM and PGD)
-        Inspired by compuer vision attacks:
-        BIM: Kurakin et al. http://arxiv.org/abs/1607.02533
-        PGD: Madry et al. https://arxiv.org/pdf/1706.06083.pdf
-        :param attack_type: BIM/PGD
-        :param attack_iteration: number of iterations
-        :param attack_eps: clipping perturbation
-        :param attack_step_size: step size perturbation
-        :param attack_name: attack_name to be printed in the results
-        :return:
-        """
-        # Set Iterative Parameters
-        self.adv_eps = attack_eps
-        self.step_size = attack_eps / attack_step_size
-        self.iteration = attack_iteration
-
-        if attack_type == 'pgd':
-            self.set_delta(delta_init=1)
-        else:
-            self.set_delta(delta_init=0)
-
-        user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data._user_input))
-        if initial:
-            print('Initial Performance.')
-            self.evaluator.eval(self.restore_epochs, {}, 'BEST MODEL ' if self.best else str(self.restore_epochs))
-            self.evaluator.store_recommendation(attack_name='')
-        # Calculate Adversarial Perturbations
-        self.iterative_perturbation(user_input, item_input_pos, item_input_neg)
-
-        results = {}
-        print('After Attack Performance.')
-        self.evaluator.eval(self.restore_epochs, results, 'BEST MODEL ' if self.best else str(self.restore_epochs))
-        self.evaluator.store_recommendation(attack_name='/' + attack_name)
         save_obj(results, '{0}/{1}-results'.format(self.path_output_rec_result,
                                                    attack_name + self.path_output_rec_result.split('/')[
                                                        -2] + '_best{0}'.format(self.best)))
