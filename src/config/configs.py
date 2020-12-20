@@ -21,3 +21,7 @@ cnn_features_path = original + 'features/cnn_{1}_{2}/'
 # RESULTS
 weight_dir = 'results/rec_model_weights'
 results_dir = 'results/rec_results'
+
+# Fields
+user_field = 'user_id'
+item_field = 'item_id'

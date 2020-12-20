@@ -8,8 +8,18 @@ def print_args(args):
     print('**********\n')
 
 
+def eval_bias_parse_args():
+    parser = argparse.ArgumentParser(description="Run the Evaluation of Bias.")
+
+    # Dataset
+    parser.add_argument('--dataset', nargs='?', default='pinterest', help='dataset name: movielens, pinterest')
+
+    # Recommender Model
+    parser.add_argument('--rec', nargs='?', default="bprmf", help="bprmf, amf, random")
+
+
 def train_parse_args():
-    parser = argparse.ArgumentParser(description="Run train of the Recommender Model.")
+    parser = argparse.ArgumentParser(description="Run the Train of the Recommender Model.")
     parser.add_argument('--gpu', type=int, default=-1)
     parser.add_argument('--batch_size', type=int, default=512, help='batch_size')
     parser.add_argument('--k', type=int, default=100, help='top-k of recommendation.')
@@ -27,7 +37,8 @@ def train_parse_args():
 
     # Epochs
     parser.add_argument('--epochs', type=int, default=4, help='Number of epochs.')
-    parser.add_argument('--restore_epochs', type=int, default=0, help='The restore epochs (Must be lower than the epochs)')
+    parser.add_argument('--restore_epochs', type=int, default=0,
+                        help='The restore epochs (Must be lower than the epochs)')
 
     # Hyper-parameters
     parser.add_argument('--lr', type=float, default=0.05, help='Learning rate.')
@@ -41,6 +52,5 @@ def train_parse_args():
     # Future Work
     parser.add_argument('--adv_iteration', type=int, default=0, help='Iterations for BIM/PGD Adversarial Training.')
     parser.add_argument('--adv_step_size', type=int, default=0, help='Step Size for BIM/PGD ATTACK.')
-
 
     return parser.parse_args()
