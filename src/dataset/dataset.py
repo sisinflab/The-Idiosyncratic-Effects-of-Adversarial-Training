@@ -3,9 +3,9 @@ import numpy as np
 from multiprocessing import Pool
 from multiprocessing import cpu_count
 import pandas as pd
-from scipy.sparse import dok_matrix
-from time import time
+import tensorflow as tf
 
+from src.util.timethis import timethis
 np.random.seed(0)
 
 _user_input = None
@@ -41,13 +41,14 @@ class DataLoader(object):
     Load train and test dataset
     """
 
-    def __init__(self, path_train_data, path_test_data):
+    def __init__(self, path_train_data, path_test_data, args):
         """
         Constructor of DataLoader
         :param path_train_data: relative path for train file
         :param path_test_data: relative path for test file
         """
-        self.test_list = []
+        self.params = args
+
         self.num_users, self.num_items = self.get_length(path_train_data, path_test_data)
         self.load_train_file(path_train_data)
 
@@ -69,7 +70,7 @@ class DataLoader(object):
         # self.load_train_file_as_list(path_train_data)
         # self.load_test_file(path_test_data)
 
-        self._user_input, self._item_input_pos = self.sampling()
+        # self._user_input, self._item_input_pos = self.sampling()
 
         print('{0} and {1} - Loaded'.format(self.path_train_data, self.path_test_data))
 
@@ -218,3 +219,30 @@ class DataLoader(object):
         item_input_pos = [r[1] for r in res]
         item_input_neg = [r[2] for r in res]
         return user_input, item_input_pos, item_input_neg
+
+    def all_triple_batches(self):
+        r_int = np.random.randint
+        user_input, pos_input, neg_input = [], [], []
+
+        for ab in range(self.num_users):
+            u = r_int(self.num_users)
+            uis = set(self.train_list[u])
+
+            for i in uis:
+                j = r_int(self.num_items)
+                while j in uis:
+                    j = r_int(self.num_items)
+
+                user_input.append(np.array(u))
+                pos_input.append(np.array(i))
+                neg_input.append(np.array(j))
+
+        return user_input, pos_input, neg_input,
+
+    # @timethis
+    def next_triple_batch(self):
+        all_triples = self.all_triple_batches()
+        data = tf.data.Dataset.from_tensor_slices(all_triples)
+        data = data.shuffle(buffer_size=self.params.batch_size*10).batch(batch_size=self.params.batch_size)
+        data = data.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        return data

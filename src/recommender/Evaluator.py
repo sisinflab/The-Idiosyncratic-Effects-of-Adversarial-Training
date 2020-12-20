@@ -8,6 +8,8 @@ import math
 from time import time
 import datetime
 
+from util import timethis
+
 _feed_dict = None
 _dataset = None
 _model = None
@@ -85,34 +87,36 @@ def _eval_by_user(user, curr_pred):
 
     # calculate from HR@1 to HR@10, and from NDCG@1 to NDCG@100, AUC
     hr, ndcg, auc, prec, rec = [], [], [], [], []
-    for k in range(1, _K + 1):
-        # HIT RATIO (HR)
-        item_score = {}
-        for i in list(item_input.reshape(-1)):
-            item_score[i] = curr_pred[i]
+    # for k in range(1, _K + 1):
+    k = _K
 
-        k_max_item_score = heapq.nlargest(k, item_score, key=item_score.get)
+    # HIT RATIO (HR)
+    item_score = {}
+    for i in list(item_input.reshape(-1)):
+        item_score[i] = curr_pred[i]
 
-        r = []
-        for i in k_max_item_score:
-            if i in item_input[-len(_dataset.test_list[user]):]:
-                r.append(1)
-            else:
-                r.append(0)
+    k_max_item_score = heapq.nlargest(k, item_score, key=item_score.get)
 
-        hr.append(1. if sum(r) > 0 else 0.)
+    r = []
+    for i in k_max_item_score:
+        if i in item_input[-len(_dataset.test_list[user]):]:
+            r.append(1)
+        else:
+            r.append(0)
 
-        # NDCG
-        ndcg.append(math.log(2) / math.log(position + 2) if position < k else 0)
+    hr.append(1. if sum(r) > 0 else 0.)
 
-        # AREA UNDER CURVE (AUC)
-        auc.append(1 - (position / (len(neg_predict) * len(pos_predict))))
+    # NDCG
+    ndcg.append(math.log(2) / math.log(position + 2) if position < k else 0)
 
-        # PRECISION (P)
-        prec.append(sum(r) / len(r))
+    # AREA UNDER CURVE (AUC)
+    auc.append(1 - (position / (len(neg_predict) * len(pos_predict))))
 
-        # RECALL (R)
-        rec.append(sum(r) / len(pos_predict))
+    # PRECISION (P)
+    prec.append(sum(r) / len(r))
+
+    # RECALL (R)
+    rec.append(sum(r) / len(pos_predict))
 
     return hr, ndcg, auc, prec, rec
 
@@ -152,11 +156,13 @@ class Evaluator:
             res.append(_eval_by_user(user, current_prediction))
 
         hr, ndcg, auc, prec, rec = (np.array(res).mean(axis=0)).tolist()
-        print_results = "(Shuffle +) Train Time: %s \tInference Time: %s\n\tMetrics@%d\n\t\tHR\tnDCG\tAUC\tPrec\tRec\n\t\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (
+        print_results = "Train Time: %s \tInference Time: %s\n\tMetrics@%d\n\t\tHR\tnDCG\tAUC\tPrec\tRec\n\t\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (
             datetime.timedelta(seconds=(time() - start_time)),
             datetime.timedelta(seconds=(time() - eval_start_time)),
             _K,
-            hr[_K - 1], ndcg[_K - 1], auc[_K - 1], prec[_K - 1], rec[_K - 1])
+            # hr[_K - 1], ndcg[_K - 1], auc[_K - 1], prec[_K - 1], rec[_K - 1]
+            hr[0], ndcg[0], auc[0], prec[0], rec[0]
+        )
 
         print(print_results)
 
@@ -173,8 +179,8 @@ class Evaluator:
         :return:
         """
         results = self.model.predict_all().numpy()
-        with open('{0}{1}ep_{2}_best{3}_top{4}_rec.tsv'.format(self.model.path_output_rec_result,
-                                                               attack_name + self.model.path_output_rec_result.split('/')[-2],
+        with open('{0}{1}ep_{2}_best{3}_top{4}_rec.tsv'.format(self.model.path_output_rec_list,
+                                                               attack_name + self.model.path_output_rec_list.split('/')[-2],
                                                                epoch,
                                                                self.model.best,
                                                                self.k),

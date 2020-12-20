@@ -18,21 +18,22 @@ def run():
     args = train_parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
-    path_train_data, path_test_data, path_output_rec_result, path_output_rec_weight = cfg.InputTrainFile, cfg.InputTestFile, cfg.OutputRecResult, cfg.OutputRecWeight
+    path_train_data, path_test_data, path_output_rec_result, path_output_rec_weight, path_output_rec_list = cfg.InputTrainFile, cfg.InputTestFile, cfg.OutputRecResult, cfg.OutputRecWeight, cfg.OutputRecList
 
     path_train_data, path_test_data, = path_train_data.format(args.dataset), path_test_data.format(args.dataset)
 
-    path_output_rec_result, path_output_rec_weight = get_paths(args, path_output_rec_result, path_output_rec_weight)
+    path_output_rec_result, path_output_rec_weight, path_output_rec_list = get_paths(args, path_output_rec_result, path_output_rec_weight, path_output_rec_list)
 
     # Create directories to Store Results and Rec Models
-    manage_directories(path_output_rec_result, path_output_rec_weight)
+    manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
 
     # Read Data
     data = DataLoader(path_train_data=path_train_data
-                      , path_test_data=path_test_data)
+                      , path_test_data=path_test_data,
+                      args=args)
 
     # Get Model
-    model = get_model(args, data, path_output_rec_result, path_output_rec_weight)
+    model = get_model(args, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list)
 
     # Start the Training
     model.train()

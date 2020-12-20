@@ -14,13 +14,14 @@ class RecommenderModel(tf.keras.Model):
         model_path (str): model path
     """
 
-    def __init__(self, data, path_output_rec_result, path_output_rec_weight, rec):
+    def __init__(self, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, rec):
         self.rec = rec
         self.data = data
         self.num_items = data.num_items
         self.num_users = data.num_users
         self.path_output_rec_result = path_output_rec_result
         self.path_output_rec_weight = path_output_rec_weight
+        self.path_output_rec_list = path_output_rec_list
 
     def train(self):
         pass

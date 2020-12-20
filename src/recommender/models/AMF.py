@@ -20,7 +20,7 @@ import tensorflow as tf
 
 class AMF(RecommenderModel):
 
-    def __init__(self, data, path_output_rec_result, path_output_rec_weight, args):
+    def __init__(self, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args):
         """
         Create a APR instance.
         (see https://arxiv.org/pdf/1205.2618 for details about the algorithm design choices)
@@ -29,7 +29,7 @@ class AMF(RecommenderModel):
         :param path_output_rec_weight: path to the directory rec. model parameters
         :param args: parameters
         """
-        super(AMF, self).__init__(data, path_output_rec_result, path_output_rec_weight, args.rec)
+        super(AMF, self).__init__(data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args.rec)
         self.embedding_size = args.embed_size
         self.learning_rate = args.lr
         self.reg = args.reg

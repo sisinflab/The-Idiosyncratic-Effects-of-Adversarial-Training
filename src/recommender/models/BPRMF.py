@@ -5,7 +5,6 @@ import logging
 from time import time
 from copy import deepcopy
 
-
 np.random.seed(0)
 logging.disable(logging.WARNING)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -14,16 +13,15 @@ import tensorflow as tf
 
 from src.recommender.Evaluator import Evaluator
 from src.recommender.RecommenderModel import RecommenderModel
-
+from src.util.timethis import timethis
 from src.util.write import save_obj
 from src.util.read import find_checkpoint
 from src.util.timer import timer
 
 
-
 class BPRMF(RecommenderModel):
 
-    def __init__(self, data, path_output_rec_result, path_output_rec_weight, args):
+    def __init__(self, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args):
         """
         Create a BPR-MF instance.
         (see https://doi.org/10.1145/3209978.3209981 for details about the algorithm design choices)
@@ -32,7 +30,7 @@ class BPRMF(RecommenderModel):
         :param path_output_rec_weight: path to the directory rec. model parameters
         :param args: parameters
         """
-        super(BPRMF, self).__init__(data, path_output_rec_result, path_output_rec_weight, args.rec)
+        super(BPRMF, self).__init__(data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args.rec)
         self.embedding_size = args.embed_size
         self.learning_rate = args.lr
         self.reg = args.reg
@@ -126,42 +124,37 @@ class BPRMF(RecommenderModel):
         :param batches: set of batches used fr the training
         :return:
         """
-        st = time()
         user_input, item_input_pos, item_input_neg = batches
-        epoch_loss = 0
 
-        for batch_idx in range(len(user_input)):
-            with tf.GradientTape() as t:
-                t.watch([self.item_bias, self.embedding_P, self.embedding_Q])
+        # for batch_idx in range(len(user_input)):
+        with tf.GradientTape() as t:
+            t.watch([self.item_bias, self.embedding_P, self.embedding_Q])
 
-                # Clean Inference
-                self.output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(inputs=(user_input[batch_idx],
-                                                                                                 item_input_pos[
-                                                                                                     batch_idx]))
-                self.output_neg, beta_neg, _, embed_q_neg = self.get_inference(inputs=(user_input[batch_idx],
-                                                                                       item_input_neg[batch_idx]))
-                self.result = tf.clip_by_value(self.output_pos - self.output_neg, -80.0, 1e8)
-                self.loss = tf.reduce_sum(tf.nn.softplus(-self.result))
+            # Clean Inference
+            self.output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(
+                inputs=(user_input, item_input_pos))
+            self.output_neg, beta_neg, _, embed_q_neg = self.get_inference(inputs=(user_input, item_input_neg))
+            result = tf.clip_by_value(self.output_pos - self.output_neg, -80.0, 1e8)
+            loss = tf.reduce_sum(tf.nn.softplus(-result))
 
-                # Regularization Component
-                self.reg_loss = self.reg * tf.reduce_sum([tf.nn.l2_loss(embed_p_pos),
-                                                          tf.nn.l2_loss(embed_q_pos),
-                                                          tf.nn.l2_loss(embed_q_neg)]) \
-                                + self.bias_reg * tf.nn.l2_loss(beta_pos) \
-                                + self.bias_reg * tf.nn.l2_loss(beta_neg) / 10
-                # Loss to be optimized
-                self.loss_opt = self.loss + self.reg_loss
-                epoch_loss += self.loss_opt
+            # Regularization Component
+            reg_loss = self.reg * tf.reduce_sum([tf.nn.l2_loss(embed_p_pos),
+                                                 tf.nn.l2_loss(embed_q_pos),
+                                                 tf.nn.l2_loss(embed_q_neg)]) \
+                       + self.bias_reg * tf.nn.l2_loss(beta_pos) \
+                       + self.bias_reg * tf.nn.l2_loss(beta_neg) / 10
+            # Loss to be optimized
+            loss += reg_loss
 
-            gradients = t.gradient(self.loss_opt, [self.item_bias, self.embedding_P, self.embedding_Q])
-            self.optimizer.apply_gradients(zip(gradients, [self.item_bias, self.embedding_P, self.embedding_Q]))
+        gradients = t.gradient(loss, [self.item_bias, self.embedding_P, self.embedding_Q])
+        self.optimizer.apply_gradients(zip(gradients, [self.item_bias, self.embedding_P, self.embedding_Q]))
 
-        return epoch_loss, timer(st, time())
+        return loss.numpy()
 
+    @timethis
     def train(self):
 
         saver_ckpt = tf.train.Checkpoint(optimizer=self.optimizer, model=self)
-        max_metrics = {'hr': 0, 'p': 0, 'r': 0, 'auc': 0, 'ndcg': 0}
 
         if self.restore():
             self.restore_epochs += 1
@@ -169,19 +162,27 @@ class BPRMF(RecommenderModel):
             self.restore_epochs = 1
             print("*** Training from scratch ***")
 
+        max_metrics = {'hr': 0, 'p': 0, 'r': 0, 'auc': 0, 'ndcg': 0}
         best_model = self
         best_epoch = self.restore_epochs
-        max_metrics = {'hr': 0, 'p': 0, 'r': 0, 'auc': 0, 'ndcg': 0}
-
         results = {}
 
         print('Start training...')
+
         for epoch in range(self.restore_epochs, self.epochs + 1):
-            # The epoch counts from 1 ton N
+
             start_ep = time()
-            batches = self.data.shuffle(self.batch_size)
-            epoch_loss, epoch_time = self._train_step(batches)
-            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Sum of batch losses) in '.format(epoch, self.epochs, epoch_loss, epoch_time)
+            loss = 0
+            steps = 0
+
+            next_batch = self.data.next_triple_batch()
+
+            for batch in next_batch:
+                steps += 1
+                loss_batch = self._train_step(batch)
+                loss += loss_batch
+
+            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Avg Batch Losses) in {3}'.format(epoch, self.epochs, loss / steps, timer(start_ep, time()))
             print(epoch_text)
 
             if epoch % self.verbose == 0 or epoch == 1:
@@ -190,8 +191,10 @@ class BPRMF(RecommenderModel):
 
                 # Updated Best Metrics
                 for metric in max_metrics.keys():
-                    if max_metrics[metric] <= results[epoch][metric][self.evaluator.k - 1]:
-                        max_metrics[metric] = results[epoch][metric][self.evaluator.k - 1]
+                    # if max_metrics[metric] <= results[epoch][metric][self.evaluator.k - 1]:
+                    #     max_metrics[metric] = results[epoch][metric][self.evaluator.k - 1]
+                    if max_metrics[metric] <= results[epoch][metric][0]:
+                        max_metrics[metric] = results[epoch][metric][0]
                         if metric == self.best_metric:
                             best_epoch, best_model, best_epoch_print = epoch, deepcopy(self), epoch_eval_print
 

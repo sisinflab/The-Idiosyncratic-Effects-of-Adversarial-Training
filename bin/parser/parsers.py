@@ -14,7 +14,7 @@ def train_parse_args():
     parser.add_argument('--dataset', nargs='?', default='movielens', help='dataset name: movielens')
     parser.add_argument('--rec', nargs='?', default="bprmf", help="bprmf, amf, random")
     parser.add_argument('--batch_size', type=int, default=512, help='batch_size')
-    parser.add_argument('--k', type=int, default=10, help='top-k of recommendation.')
+    parser.add_argument('--k', type=int, default=100, help='top-k of recommendation.')
     parser.add_argument('--best_metric', type=str, default='hr')
     parser.add_argument('--epochs', type=int, default=10, help='Number of epochs.')
     parser.add_argument('--verbose', type=int, default=2, help='Number of epochs to store model parameters.')

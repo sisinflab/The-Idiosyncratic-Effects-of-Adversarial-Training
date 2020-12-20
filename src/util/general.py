@@ -10,12 +10,12 @@ def format_error(error):
     return ret
 
 
-def get_model(args, data, path_output_rec_result, path_output_rec_weight):
+def get_model(args, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list):
     if args.rec == 'bprmf':
-        return BPRMF(data, path_output_rec_result, path_output_rec_weight, args)
+        return BPRMF(data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args)
     elif args.rec == 'amf':
-        return AMF(data, path_output_rec_result, path_output_rec_weight, args)
+        return AMF(data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args)
     elif args.rec == 'random':
-        return Random(data, path_output_rec_result, path_output_rec_weight, args)
+        return Random(data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args)
     else:
         raise NotImplementedError('Unknown Recommender Model.')
