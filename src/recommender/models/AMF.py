@@ -5,24 +5,25 @@ import logging
 from time import time
 from copy import deepcopy
 
-from src.recommender.Evaluator import Evaluator
-from src.recommender.RecommenderModel import RecommenderModel
-
-from src.util.write import save_obj
-from src.util.read import find_checkpoint
-
 np.random.seed(0)
 logging.disable(logging.WARNING)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import tensorflow as tf
 
+from src.recommender.Evaluator import Evaluator
+from src.recommender.RecommenderModel import RecommenderModel
+from src.util.timethis import timethis
+from src.util.write import save_obj
+from src.util.read import find_checkpoint
+from src.util.timer import timer
+
 
 class AMF(RecommenderModel):
 
     def __init__(self, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args):
         """
-        Create a APR instance.
+        Create a AMF instance.
         (see https://arxiv.org/pdf/1205.2618 for details about the algorithm design choices)
         :param data: data loader object
         :param path_output_rec_result: path to the directory rec. results
@@ -33,12 +34,15 @@ class AMF(RecommenderModel):
         self.embedding_size = args.embed_size
         self.learning_rate = args.lr
         self.reg = args.reg
-        self.adv_eps = args.adv_eps
+        self.bias_reg = args.bias_reg
         self.epochs = args.epochs
         self.batch_size = args.batch_size
         self.verbose = args.verbose
         self.restore_epochs = args.restore_epochs
+        self.best_metric = args.best_metric
         self.evaluator = Evaluator(self, data, args.k)
+
+        self.adv_eps = args.adv_eps
         self.adv_type = args.adv_type
         self.adv_reg = args.adv_reg
         self.adv_iteration = args.adv_iteration
@@ -52,7 +56,7 @@ class AMF(RecommenderModel):
         self.embedding_Q = tf.Variable(
             tf.random.truncated_normal(shape=[self.num_items, self.embedding_size], mean=0.0, stddev=0.01),
             name='embedding_Q', dtype=tf.dtypes.float32)  # (items, embedding_size)
-        self.h = tf.constant(1.0, tf.float32, [self.embedding_size, 1], name="h")
+        self.item_bias = tf.Variable(tf.zeros(self.num_items), name='Bi', dtype=tf.float32)
 
         # Method to create delta locations for the adv. perturbations
         self.set_delta()
@@ -76,7 +80,7 @@ class AMF(RecommenderModel):
             self.delta_Q = tf.Variable(tf.zeros(shape=[self.num_items, self.embedding_size]), dtype=tf.dtypes.float32,
                                        trainable=False)
 
-    def get_inference(self, user_input, item_input_pos):
+    def get_biased_inference(self, user_input, item_input_pos):
         """
         generate predicition matrix with respect to passed users' and items indices
         :param user_input: user indices
@@ -89,12 +93,36 @@ class AMF(RecommenderModel):
         return tf.matmul(self.embedding_p * self.embedding_q,
                          self.h), self.embedding_p, self.embedding_q  # (b, embedding_size) * (embedding_size, 1)
 
-    def get_full_inference(self):
+    def get_inference(self, inputs, training=None, mask=None):
+        """
+        Generates prediction for passed users and items indices
+
+        Args:
+            inputs: user, item (batch)
+            training: Boolean or boolean scalar tensor, indicating whether to run
+            the `Network` in training mode or inference mode.
+            mask: A mask or list of masks. A mask can be
+            either a tensor or None (no mask).
+
+        Returns:
+            prediction and extracted model parameters
+        """
+        user, item = inputs
+        beta_i = tf.squeeze(tf.nn.embedding_lookup(self.item_bias, item))
+        gamma_u = tf.squeeze(tf.nn.embedding_lookup(self.embedding_P + self.delta_P, user))
+        gamma_i = tf.squeeze(tf.nn.embedding_lookup(self.embedding_Q + self.delta_Q, item))
+
+        xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, 1)
+
+        return xui, beta_i, gamma_u, gamma_i
+
+    def predict_all(self):
         """
         Get Full Predictions useful for Full Store of Predictions
         :return: The matrix of predicted values.
         """
-        return tf.matmul(self.embedding_P + self.delta_P, tf.transpose(self.embedding_Q + self.delta_Q))
+        return self.item_bias + tf.matmul(self.embedding_P + self.delta_P,
+                                          tf.transpose(self.embedding_Q + self.delta_Q))
 
     def _train_step(self, batches):
         """
@@ -104,53 +132,50 @@ class AMF(RecommenderModel):
         """
         user_input, item_input_pos, item_input_neg = batches
 
-        for batch_idx in range(len(user_input)):
+        # Restore Deltas for the Perturbation
+        self.set_delta(delta_init=0)
+
+        with tf.GradientTape() as t:
+            t.watch([self.item_bias, self.embedding_P, self.embedding_Q])
+
+            # Clean Inference
+            self.output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(inputs=(user_input, item_input_pos))
+            self.output_neg, beta_neg, _, embed_q_neg = self.get_inference(inputs=(user_input, item_input_neg))
+            result = tf.clip_by_value(self.output_pos - self.output_neg, -80.0, 1e8)
+            loss = tf.reduce_sum(tf.nn.softplus(-result))
+
+            # Regularization Component
+            reg_loss = self.reg * tf.reduce_sum([tf.nn.l2_loss(embed_p_pos),
+                                                 tf.nn.l2_loss(embed_q_pos),
+                                                 tf.nn.l2_loss(embed_q_neg)]) \
+                       + self.bias_reg * tf.nn.l2_loss(beta_pos) \
+                       + self.bias_reg * tf.nn.l2_loss(beta_neg) / 10
+
+            loss += reg_loss
 
             # Restore Deltas for the Perturbation
-            self.set_delta(delta_init=0)
+            self.set_delta(delta_init=self.adv_type == 'pgd')
 
-            with tf.GradientTape() as t:
-                t.watch([self.embedding_P, self.embedding_Q])
+            # Adversarial Training Component
+            if self.adv_type == 'fgsm':
+                self.fgsm_perturbation(user_input, item_input_pos, item_input_neg)
 
-                # Clean Inference
-                self.output_pos, embed_p_pos, embed_q_pos = self.get_inference(user_input[batch_idx],
-                                                                               item_input_pos[batch_idx])
-                self.output_neg, embed_p_neg, embed_q_neg = self.get_inference(user_input[batch_idx],
-                                                                               item_input_neg[batch_idx])
-                self.result = tf.clip_by_value(self.output_pos - self.output_neg, -80.0, 1e8)
-                self.loss = tf.reduce_sum(tf.nn.softplus(-self.result))
+            # Adversarial Inference
+            self.output_pos_adver, _, _, _ = self.get_inference(inputs=(user_input, item_input_pos))
+            self.output_neg_adver, _, _, _ = self.get_inference(inputs=(user_input, item_input_neg))
 
-                # Regularization Component
-                self.reg_loss = self.reg * tf.reduce_mean(
-                    tf.square(embed_p_pos) + tf.square(embed_q_pos) + tf.square(embed_q_neg))
+            result_adver = tf.clip_by_value(self.output_pos_adver - self.output_neg_adver, -80.0, 1e8)
+            loss_adver = tf.reduce_sum(tf.nn.softplus(-result_adver))
 
-                # Restore Deltas for the Perturbation
-                self.set_delta(delta_init=self.adv_type == 'pgd')
+            # Loss to be optimized
+            loss += self.adv_reg * loss_adver
 
-                # Adversarial Training Component
-                if self.adv_type == 'fgsm':
-                    self.fgsm_perturbation(user_input, item_input_pos, item_input_neg, batch_idx)
+        gradients = t.gradient(loss, [self.item_bias, self.embedding_P, self.embedding_Q])
+        self.optimizer.apply_gradients(zip(gradients, [self.item_bias, self.embedding_P, self.embedding_Q]))
 
-                elif self.adv_type in ['bim', 'pgd']:
-                    # Set Iterative Parameters
-                    self.adv_eps = self.adv_eps
-                    self.step_size = self.adv_eps / self.adv_step_size
-                    self.iteration = self.adv_iteration
-                    self.iterative_perturbation(user_input, item_input_pos, item_input_neg, batch_idx)
+        return loss.numpy()
 
-                # Adversarial Inference
-                self.output_pos_adver, _, _ = self.get_inference(user_input[batch_idx], item_input_pos[batch_idx])
-                self.output_neg_adver, _, _ = self.get_inference(user_input[batch_idx], item_input_neg[batch_idx])
-
-                self.result_adver = tf.clip_by_value(self.output_pos_adver - self.output_neg_adver, -80.0, 1e8)
-                self.loss_adver = tf.reduce_sum(tf.nn.softplus(-self.result_adver))
-
-                # Loss to be optimized
-                self.loss_opt = self.loss + self.adv_reg * self.loss_adver + self.reg_loss
-
-            gradients = t.gradient(self.loss_opt, [self.embedding_P, self.embedding_Q])
-            self.optimizer.apply_gradients(zip(gradients, [self.embedding_P, self.embedding_Q]))
-
+    @timethis
     def train(self):
 
         saver_ckpt = tf.train.Checkpoint(optimizer=self.optimizer, model=self)
@@ -159,39 +184,59 @@ class AMF(RecommenderModel):
             self.restore_epochs += 1
         else:
             self.restore_epochs = 1
-            print("Training from scratch...")
+            print("*** Training from scratch ***")
 
-        # initialize the max_ndcg to memorize the best result
-        max_hr = 0
+        max_metrics = {'hr': 0, 'p': 0, 'r': 0, 'auc': 0, 'ndcg': 0}
         best_model = self
         best_epoch = self.restore_epochs
         results = {}
 
+        print('Start training...')
+
         for epoch in range(self.restore_epochs, self.epochs + 1):
-            startep = time()
-            batches = self.data.shuffle(self.batch_size)
-            self._train_step(batches)
-            epoch_text = 'Epoch {0}/{1} '.format(epoch, self.epochs)
-            self.evaluator.eval(epoch, results, epoch_text, startep)
 
-            # print and log the best result (HR@10)
-            if max_hr < results[epoch]['hr'][self.evaluator.k - 1]:
-                max_hr = results[epoch]['hr'][self.evaluator.k - 1]
-                best_epoch = epoch
-                best_model = deepcopy(self)
+            start_ep = time()
+            loss = 0
+            steps = 0
 
-            if epoch % self.verbose == 0 or epoch == 1:
+            next_batch = self.data.next_triple_batch()
+
+            for batch in next_batch:
+                steps += 1
+                loss_batch = self._train_step(batch)
+                loss += loss_batch
+
+            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Avg Batch Losses) in {3}'.format(epoch, self.epochs, loss / steps, timer(start_ep, time()))
+            print(epoch_text)
+
+            if epoch % self.verbose == 0:
+                # Eval Model
+                epoch_eval_print = self.evaluator.eval(epoch, results, epoch_text, start_ep)
+
+                # Updated Best Metrics
+                for metric in max_metrics.keys():
+                    # if max_metrics[metric] <= results[epoch][metric][self.evaluator.k - 1]:
+                    #     max_metrics[metric] = results[epoch][metric][self.evaluator.k - 1]
+                    if max_metrics[metric] <= results[epoch][metric][0]:
+                        max_metrics[metric] = results[epoch][metric][0]
+                        if metric == self.best_metric:
+                            best_epoch, best_model, best_epoch_print = epoch, deepcopy(self), epoch_eval_print
+
+                # Save Model
                 saver_ckpt.save('{0}/weights-{1}'.format(self.path_output_rec_weight, epoch))
+                # Save Rec Lists
+                self.evaluator.store_recommendation(epoch=epoch)
 
-        self.evaluator.store_recommendation()
+        print('Training Ended')
+
+        print("Store The Results of the Training")
         save_obj(results,
                  '{0}/{1}-results'.format(self.path_output_rec_result, self.path_output_rec_result.split('/')[-2]))
 
-        # Store the best model
         print("Store Best Model at Epoch {0}".format(best_epoch))
         saver_ckpt = tf.train.Checkpoint(optimizer=self.optimizer, model=best_model)
         saver_ckpt.save('{0}/best-weights-{1}'.format(self.path_output_rec_weight, best_epoch))
-        best_model.evaluator.store_recommendation()
+        best_model.evaluator.store_recommendation(epoch=best_epoch)
 
     def restore(self):
         saver_ckpt = tf.train.Checkpoint(optimizer=self.optimizer, model=self)
@@ -218,7 +263,7 @@ class AMF(RecommenderModel):
             print("Restore Epochs Not Specified")
         return False
 
-    def fgsm_perturbation(self, user_input, item_input_pos, item_input_neg, batch_idx=0):
+    def fgsm_perturbation(self, user_input, item_input_pos, item_input_neg):
         """
         Evaluate Adversarial Perturbation with FGSM-like Approach
         :param user_input:
@@ -230,12 +275,12 @@ class AMF(RecommenderModel):
         with tf.GradientTape() as tape_adv:
             tape_adv.watch([self.embedding_P, self.embedding_Q])
             # Clean Inference
-            output_pos, embed_p_pos, embed_q_pos = self.get_inference(user_input[batch_idx],
-                                                                      item_input_pos[batch_idx])
-            output_neg, embed_p_neg, embed_q_neg = self.get_inference(user_input[batch_idx],
-                                                                      item_input_neg[batch_idx])
+            output_pos, beta_pos,  embed_p_pos, embed_q_pos = self.get_inference(inputs=(user_input, item_input_pos))
+            output_neg, beta_neg, embed_p_neg, embed_q_neg = self.get_inference(inputs=(user_input, item_input_neg))
+
             result = tf.clip_by_value(output_pos - output_neg, -80.0, 1e8)
             loss = tf.reduce_sum(tf.nn.softplus(-result))
+
             loss += self.reg * tf.reduce_mean(
                 tf.square(embed_p_pos) + tf.square(embed_q_pos) + tf.square(embed_q_neg))
 
@@ -243,64 +288,6 @@ class AMF(RecommenderModel):
         grad_P, grad_Q = tf.stop_gradient(grad_P), tf.stop_gradient(grad_Q)
         self.delta_P = tf.nn.l2_normalize(grad_P, 1) * self.adv_eps
         self.delta_Q = tf.nn.l2_normalize(grad_Q, 1) * self.adv_eps
-
-    def iterative_perturbation(self, user_input, item_input_pos, item_input_neg, batch_idx=0):
-        """
-        Evaluate Adversarial Perturbation with Iterative-like Approach
-        :param user_input:
-        :param item_input_pos:
-        :param item_input_neg:
-        :param batch_idx:
-        :return:
-        """
-        for _ in range(self.iteration):
-            with tf.GradientTape() as tape_adv:
-                tape_adv.watch([self.embedding_P, self.embedding_Q])
-                # Clean Inference
-                output_pos, embed_p_pos, embed_q_pos = self.get_inference(user_input[batch_idx],
-                                                                          item_input_pos[batch_idx])
-                output_neg, embed_p_neg, embed_q_neg = self.get_inference(user_input[batch_idx],
-                                                                          item_input_neg[batch_idx])
-                result = tf.clip_by_value(output_pos - output_neg, -80.0, 1e8)
-                loss = tf.reduce_sum(tf.nn.softplus(-result))
-                loss += self.reg * tf.reduce_mean(
-                    tf.square(embed_p_pos) + tf.square(embed_q_pos) + tf.square(embed_q_neg))
-
-            grad_P, grad_Q = tape_adv.gradient(loss, [self.embedding_P, self.embedding_Q])
-            grad_P, grad_Q = tf.stop_gradient(grad_P), tf.stop_gradient(grad_Q)
-            self.step_delta_P = tf.nn.l2_normalize(grad_P, 1) * self.step_size
-            self.step_delta_Q = tf.nn.l2_normalize(grad_Q, 1) * self.step_size
-
-            # Clipping perturbation eta to norm norm ball
-            # eta = adv_x - x
-            # eta = clip_eta(eta, norm, eps)
-            # adv_x = x + eta
-            # L2 NORM on P
-
-            # self.norm_P = tf.sqrt(tf.maximum(1e-12, tf.reduce_sum(tf.square(self.step_delta_P),
-            #                                                       list(range(1, len(self.step_delta_P.get_shape()))),
-            #                                                       keepdims=True)))
-            # # We must *clip* to within the norm ball, not *normalize* onto the surface of the ball
-            # self.factor_P = tf.minimum(1., tf.divide(self.adv_eps, self.norm_P))
-            #
-            # # L2 NORM on Q
-            # self.norm_Q = tf.sqrt(tf.maximum(1e-12, tf.reduce_sum(tf.square(self.step_delta_Q),
-            #                                                       list(range(1, len(self.step_delta_Q.get_shape()))),
-            #                                                       keepdims=True)))
-            # self.factor_Q = tf.minimum(1., tf.divide(self.adv_eps, self.norm_Q))
-
-            # self.delta_P = self.step_delta_P * self.factor_P
-            # self.delta_Q = self.step_delta_Q * self.factor_Q
-
-            self.delta_P = tf.clip_by_value(self.delta_P + self.step_delta_P, -self.adv_eps, self.adv_eps)
-            self.delta_Q = tf.clip_by_value(self.delta_Q + self.step_delta_Q, -self.adv_eps, self.adv_eps)
-
-            if np.any(self.delta_P > self.adv_eps) or np.any(self.delta_Q > self.adv_eps):
-
-                print('Test Pert.\nP is out the clip? {0}\nQ is out the clip? {1} \n- MAX P {2} - Q {3}'.format(np.any(self.delta_P > self.adv_eps),
-                                                                                                  np.any(self.delta_Q > self.adv_eps),
-                                                                                                  np.max(self.delta_P), np.max(self.delta_Q)))
-
 
     def attack_full_fgsm(self, attack_eps, attack_name=""):
         """
@@ -312,6 +299,7 @@ class AMF(RecommenderModel):
         # Set eps perturbation (budget)
         self.adv_eps = attack_eps
         user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data._user_input))
+
         print('Initial Performance.')
         self.evaluator.eval(self.restore_epochs, {}, 'BEST MODEL ' if self.best else str(self.restore_epochs))
 
@@ -322,47 +310,6 @@ class AMF(RecommenderModel):
         print('After Attack Performance.')
         self.evaluator.eval(self.restore_epochs, results, 'BEST MODEL ' if self.best else str(self.restore_epochs))
         self.evaluator.store_recommendation(attack_name=attack_name)
-        save_obj(results, '{0}/{1}-results'.format(self.path_output_rec_result,
-                                                   attack_name + self.path_output_rec_result.split('/')[
-                                                       -2] + '_best{0}'.format(self.best)))
-
-        print('{0} - Completed!'.format(attack_name))
-
-    def attack_full_iterative(self, attack_type, attack_iteration, attack_eps, attack_step_size, initial=1, attack_name=""):
-        """
-        ITERATIVE ATTACKS (BIM and PGD)
-        Inspired by compuer vision attacks:
-        BIM: Kurakin et al. http://arxiv.org/abs/1607.02533
-        PGD: Madry et al. https://arxiv.org/pdf/1706.06083.pdf
-        :param attack_type: BIM/PGD
-        :param attack_iteration: number of iterations
-        :param attack_eps: clipping perturbation
-        :param attack_step_size: step size perturbation
-        :param attack_name: attack_name to be printed in the results
-        :return:
-        """
-        # Set Iterative Parameters
-        self.adv_eps = attack_eps
-        self.step_size = attack_eps / attack_step_size
-        self.iteration = attack_iteration
-
-        if attack_type == 'pgd':
-            self.set_delta(delta_init=1)
-        else:
-            self.set_delta(delta_init=0)
-
-        user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data._user_input))
-        if initial:
-            print('Initial Performance.')
-            self.evaluator.eval(self.restore_epochs, {}, 'BEST MODEL ' if self.best else str(self.restore_epochs))
-            self.evaluator.store_recommendation(attack_name='')
-        # Calculate Adversarial Perturbations
-        self.iterative_perturbation(user_input, item_input_pos, item_input_neg)
-
-        results = {}
-        print('After Attack Performance.')
-        self.evaluator.eval(self.restore_epochs, results, 'BEST MODEL ' if self.best else str(self.restore_epochs))
-        self.evaluator.store_recommendation(attack_name='/' + attack_name)
         save_obj(results, '{0}/{1}-results'.format(self.path_output_rec_result,
                                                    attack_name + self.path_output_rec_result.split('/')[
                                                        -2] + '_best{0}'.format(self.best)))

@@ -74,7 +74,7 @@ class BPRMF(RecommenderModel):
             self.delta_Q = tf.Variable(tf.zeros(shape=[self.num_items, self.embedding_size]), dtype=tf.dtypes.float32,
                                        trainable=False)
 
-    def get_inference_old(self, user_input, item_input_pos):
+    def get_biased_inference(self, user_input, item_input_pos):
         """
         generate predicition matrix with respect to passed users' and items indices
         :param user_input: user indices
@@ -185,7 +185,7 @@ class BPRMF(RecommenderModel):
             epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Avg Batch Losses) in {3}'.format(epoch, self.epochs, loss / steps, timer(start_ep, time()))
             print(epoch_text)
 
-            if epoch % self.verbose == 0 or epoch == 1:
+            if epoch % self.verbose == 0:
                 # Eval Model
                 epoch_eval_print = self.evaluator.eval(epoch, results, epoch_text, start_ep)
 
@@ -239,7 +239,7 @@ class BPRMF(RecommenderModel):
             print("Restore Epochs Not Specified")
         return False
 
-    def fgsm_perturbation(self, user_input, item_input_pos, item_input_neg, batch_idx=0):
+    def fgsm_perturbation(self, user_input, item_input_pos, item_input_neg):
         """
         Evaluate Adversarial Perturbation with FGSM-like Approach
         :param user_input:
@@ -251,10 +251,8 @@ class BPRMF(RecommenderModel):
         with tf.GradientTape() as tape_adv:
             tape_adv.watch([self.embedding_P, self.embedding_Q])
             # Clean Inference
-            output_pos, beta_pos, embed_p_pos, embed_q_pos = self(user_input[batch_idx],
-                                                                  item_input_pos[batch_idx])
-            output_neg, beta_neg, embed_p_neg, embed_q_neg = self(user_input[batch_idx],
-                                                                  item_input_neg[batch_idx])
+            output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(inputs=(user_input, item_input_pos))
+            output_neg, beta_neg, embed_p_neg, embed_q_neg = self.get_inference(inputs=(user_input, item_input_neg))
             result = tf.clip_by_value(output_pos - output_neg, -80.0, 1e8)
             loss = tf.reduce_sum(tf.nn.softplus(-result))
             loss += self.reg * tf.reduce_mean(

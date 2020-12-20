@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # print(os.getcwd())
 
-from parser.parsers import train_parse_args
+from parser.parsers import train_parse_args, print_args
 from src.dataset.dataset import DataLoader
 from src.util.dir_manager import manage_directories, get_paths
 from src.util.general import get_model
@@ -16,6 +16,7 @@ import src.config.configs as cfg
 
 def run():
     args = train_parse_args()
+    print_args(args)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
 
     path_train_data, path_test_data, path_output_rec_result, path_output_rec_weight, path_output_rec_list = cfg.InputTrainFile, cfg.InputTestFile, cfg.OutputRecResult, cfg.OutputRecWeight, cfg.OutputRecList
