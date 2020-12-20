@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 
 
-def get_head_tail_split(item_pop):
+def get_head_tail_split_8020(item_pop):
     """
     Get the index of the short head limit (80% of ratings)
     :param item_pop:
@@ -14,6 +14,16 @@ def get_head_tail_split(item_pop):
         eighty_percent -= cnt
         if eighty_percent <= 0:
             return i
+
+
+def get_head_tail_split(item_pop, num_items):
+    """
+    Get the index of the top-20% rated items in the training set
+    :param item_pop:
+    :return:
+    """
+    threshold = 0.2
+    return int(num_items*threshold)
 
 
 def catalog_coverage(predicted, catalog, k):

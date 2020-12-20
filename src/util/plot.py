@@ -1,7 +1,16 @@
+import math
+import pickle
+import pandas as pd
+import scipy as sp
+
 import numpy as np
+from scipy.interpolate import interp1d
+
 import matplotlib.pyplot as plt
 
-user_field, item_field, score = 'user_id', 'item_id', 'score'
+
+import config as cfg
+
 
 def regress(x, y):
     """Return a tuple of predicted y values and parameters for linear regression."""
@@ -40,7 +49,7 @@ def plot_item_popularity_by_recommendation_frequency(key, original, predictions,
     plt.xlabel('Average item popularity by users')
     plt.ylabel('Recommendation frequency')
 
-    pred_item_pop = predictions.groupby([item_field]).count().sort_values(user_field, ascending=False)[user_field]
+    pred_item_pop = predictions.groupby([cfg.item_field]).count().sort_values(cfg.user_field, ascending=False)[cfg.user_field]
     dict_pred_item_pop = dict(zip(pred_item_pop.index, pred_item_pop.to_list()))
 
     x = sorted(item_pop.to_list())
@@ -53,7 +62,7 @@ def plot_item_popularity_by_recommendation_frequency(key, original, predictions,
     x = np.array(x) / num_users
     plt.scatter(x, y, label='AMF' if dataset in ['movielens', 'lastfm'] else 'AMR', alpha=0.75)
 
-    pred_item_pop = original.groupby([item_field]).count().sort_values(user_field, ascending=False)[user_field]
+    pred_item_pop = original.groupby([cfg.item_field]).count().sort_values(cfg.user_field, ascending=False)[cfg.user_field]
     dict_pred_item_pop = dict(zip(pred_item_pop.index, pred_item_pop.to_list()))
 
     x = sorted(item_pop.to_list())

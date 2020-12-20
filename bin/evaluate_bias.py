@@ -1,17 +1,19 @@
 import sys
 import os
+import pandas as pd
+import numpy as np
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from parser.parsers import train_parse_args, print_args
+from parser.parsers import eval_bias_parse_args, print_args
 from src.dataset.dataset import DataLoader
 from src.util.dir_manager import manage_directories, get_paths
 from src.util.general import get_model
 import src.config.configs as cfg
 
-from src.data.read import read_prediction_lists, get_list_of_predictions, get_list_of_test, get_list_of_training, \
+from src.evaluation.read_results import read_prediction_lists, get_list_of_predictions, get_list_of_test, get_list_of_training, \
     read_embeddings
 from src.evaluation.metrics import compute_gini, get_head_tail_split, catalog_coverage, mark, novelty, \
     recommender_precision, recommender_recall, average_recommendation_popularity, average_percentage_of_long_tail_items, \
@@ -20,47 +22,57 @@ from src.util.plot import plot_item_popularity, plot_item_popularity_by_recommen
     plot_embedding_norm_by_item_popularity, plot_item_popularity_by_recommendation_score
 
 
+def read_data(dataset):
+    train = pd.read_csv(cfg.InputTrainFile.format(dataset), sep='\t', header=None)
+    train.columns = [cfg.user_field, cfg.item_field, cfg.score_field, cfg.time_field]
+    test = pd.read_csv(cfg.InputTestFile.format(dataset), sep='\t', header=None)
+    test.columns = [cfg.user_field, cfg.item_field, cfg.score_field, cfg.time_field]
+
+    return train, test
+
+
+def get_data_statistics(train, test):
+    data = train.copy()
+    data = data.append(test, ignore_index=True)
+    return data[cfg.user_field].nunique(), data[cfg.item_field].nunique(), len(train)
+
+
 def run():
-    user_field = 'user_id'
-    item_field = 'item_id'
+    args = eval_bias_parse_args()
+    print_args(args)
 
-    results = 'Dataset\tModel\tTOP-K\tcoverage\tperc_coverage\tprec\trecall\tmar\tnDCG\tnovelty\tarp\taplt\taclt\tp_pop\tp_tail\trsp\tpc_pop\tpc_tail\treo'
-    print(results)
+    print(cfg.bias_header)
 
-    for dataset in ['movielens', 'lastfm', 'amazon_women', 'amazon_men']:
+    for dataset in args.datasets:
 
-        print('Dataset: {0}'.format(dataset))
+        print('Start Bias evaluation on Dataset: {0}'.format(dataset))
 
-        train = pd.read_csv('../dataset/{0}/trainingset.tsv'.format(dataset), sep='\t', header=None)
-        train.columns = [user_field, item_field]
-        test = pd.read_csv('../dataset/{0}/testset.tsv'.format(dataset), sep='\t', header=None)
-        test.columns = [user_field, item_field]
+        train, test = read_data(dataset)
 
-        catalog = sorted(train[item_field].unique())
+        catalog = sorted(train[cfg.item_field].unique())
 
         # Split in Short Head, Long Tail, and Distant Tail
         # The first vertical line separates the top 20% of items by popularity – these items cumulatively have many more ratings than the 80% tail items to the right.
-
-        item_pop = train.groupby([item_field]).count().sort_values(user_field, ascending=False)[user_field]
-        item_pop.head()
+        item_pop = train.groupby([cfg.item_field]).count().sort_values(cfg.user_field, ascending=False)[cfg.user_field]
         dict_item_pop = dict(zip(item_pop.index, item_pop.to_list()))
 
-        num_ratings = sum(np.array(item_pop))
-        num_users = train[user_field].nunique()
-        num_items = train[item_field].nunique()
+        num_users, num_items, num_ratings = get_data_statistics(train, test)
 
-        head_tail_split = get_head_tail_split(item_pop)
+        head_tail_split = get_head_tail_split(item_pop, num_items)
 
         head_tail_items = np.array(item_pop[:head_tail_split].index)
         long_tail_items = np.array(item_pop[head_tail_split:].index)
 
+        # Compute Gini Index of Rated Items
         print('Head Tail', compute_gini(item_pop[:head_tail_split]))
         print('Long Tail', compute_gini(item_pop[head_tail_split:]))
 
         plot_item_popularity(item_pop, head_tail_split, dataset)
 
-        # Evaluate Metrics
+        # TODO
+        ## I am here
 
+        # Evaluate Metrics
         original, advers_eps05, advers_eps10, advers_eps20 = read_prediction_lists(dataset)
 
         list_of_test = get_list_of_test(test)

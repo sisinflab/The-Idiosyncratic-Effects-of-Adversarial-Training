@@ -11,11 +11,13 @@ def print_args(args):
 def eval_bias_parse_args():
     parser = argparse.ArgumentParser(description="Run the Evaluation of Bias.")
 
-    # Dataset
-    parser.add_argument('--dataset', nargs='?', default='pinterest', help='dataset name: movielens, pinterest')
+    # Datasets
+    parser.add_argument("--datasets", nargs="+", default=['movielens'], help="You can choose between: movielens, yelp, pinterest ")
 
     # Recommender Model
     parser.add_argument('--rec', nargs='?', default="bprmf", help="bprmf, amf, random")
+
+    return parser.parse_args()
 
 
 def train_parse_args():
@@ -30,7 +32,7 @@ def train_parse_args():
     parser.add_argument('--best', type=int, default=0, help='Parameter useful for attack scenario. Leave at 0 here.')
 
     # Dataset
-    parser.add_argument('--dataset', nargs='?', default='pinterest', help='dataset name: movielens, pinterest')
+    parser.add_argument('--dataset', nargs='?', default='yelp', help='dataset name: movielens, pinterest, yelp')
 
     # Recommender Model
     parser.add_argument('--rec', nargs='?', default="bprmf", help="bprmf, amf, random")

@@ -22,3 +22,6 @@ pip-selfcheck.json
 /data/
 /log/
 /rec*
+/rec_bias/
+/rec_plot/
+/rec_plot/

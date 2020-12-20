@@ -25,3 +25,7 @@ results_dir = 'results/rec_results'
 # Fields
 user_field = 'user_id'
 item_field = 'item_id'
+score_field = 'score'
+time_field = 'time'
+
+bias_header = 'Dataset\tModel\tTOP-K\tcoverage\tperc_coverage\tprec\trecall\tmar\tnDCG\tnovelty\tarp\taplt\taclt\tp_pop\tp_tail\trsp\tpc_pop\tpc_tail\treo'
