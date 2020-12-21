@@ -14,6 +14,12 @@ def manage_directories(path_output_rec_result, path_output_rec_weight, path_outp
     os.makedirs(os.path.dirname(path_output_rec_list))
 
 
+def manage_directories_evaluate_results(path_to_be_create):
+    if os.path.exists(os.path.dirname(path_to_be_create)):
+        shutil.rmtree(os.path.dirname(path_to_be_create))
+    os.makedirs(os.path.dirname(path_to_be_create))
+
+
 def get_paths(args, path_output_rec_result, path_output_rec_weight, path_output_rec_list):
     if args.rec == 'bprmf':
         path_output_rec_result = path_output_rec_result.format(args.dataset,

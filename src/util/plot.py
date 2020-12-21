@@ -8,7 +8,6 @@ from scipy.interpolate import interp1d
 
 import matplotlib.pyplot as plt
 
-
 import config as cfg
 
 
@@ -25,7 +24,8 @@ def preprocess_x_y(x, y):
     df = df.groupby(['x']).mean('y').reset_index()
     return df['x'].to_list(), df['y'].to_list()
 
-def plot_item_popularity(item_pop, head_tail_split, dataset):
+
+def plot_item_popularity(item_pop, head_tail_split, path_name):
     plt.rcParams.update({'font.size': 12})
     plt.figure(figsize=(6, 3.5))
 
@@ -38,7 +38,7 @@ def plot_item_popularity(item_pop, head_tail_split, dataset):
     plt.ylim([-25, item_pop.values[0]])
     plt.legend()
     plt.tight_layout()
-    plt.savefig('../measures/{0}/item_popularity.pdf'.format(dataset))
+    plt.savefig(path_name)
     plt.close()
 
 
@@ -49,7 +49,8 @@ def plot_item_popularity_by_recommendation_frequency(key, original, predictions,
     plt.xlabel('Average item popularity by users')
     plt.ylabel('Recommendation frequency')
 
-    pred_item_pop = predictions.groupby([cfg.item_field]).count().sort_values(cfg.user_field, ascending=False)[cfg.user_field]
+    pred_item_pop = predictions.groupby([cfg.item_field]).count().sort_values(cfg.user_field, ascending=False)[
+        cfg.user_field]
     dict_pred_item_pop = dict(zip(pred_item_pop.index, pred_item_pop.to_list()))
 
     x = sorted(item_pop.to_list())
@@ -113,7 +114,6 @@ def plot_embedding_norm_by_item_popularity(q_embedding_base, item_pop, q_embeddi
 
 def plot_item_popularity_by_recommendation_score(key, original, predictions, item_pop, dataset, num_users, k,
                                                  head_tail_items, long_tail_items, emb_original, emb_advers_eps10):
-
     plt.rcParams.update({'font.size': 12})
     plt.figure(figsize=(6, 3.5))
 

@@ -23,7 +23,7 @@ def get_head_tail_split(item_pop, num_items):
     :return:
     """
     threshold = 0.2
-    return int(num_items*threshold)
+    return int(num_items * threshold)
 
 
 def catalog_coverage(predicted, catalog, k):
@@ -158,7 +158,8 @@ def novelty(predicted, pop, u, n):
         self_information = 0
         k += 1
         for i in sublist:
-            self_information += np.sum(-np.log2(pop[i] / u))
+            if pop[i] != 0:
+                self_information += np.sum(-np.log2(pop[i] / u))
         mean_self_information.append(self_information / n)
     novelty = sum(mean_self_information) / k
     return novelty, mean_self_information
@@ -185,7 +186,7 @@ def recommender_precision(predicted, actual):
         return prec
 
     precision = np.mean(list(map(calc_precision, predicted, actual)))
-    return precision
+    return precision, list(map(calc_precision, predicted, actual))
 
 
 def recommender_recall(predicted, actual):
@@ -209,7 +210,7 @@ def recommender_recall(predicted, actual):
         return reca
 
     recall = np.mean(list(map(calc_recall, predicted, actual)))
-    return recall
+    return recall, list(map(calc_recall, predicted, actual))
 
 
 def average_recommendation_popularity(predicted, pop):
@@ -237,9 +238,9 @@ def average_recommendation_popularity(predicted, pop):
         for i in L_u:
             phi_u += pop[i]
         arp.append(phi_u / len(L_u))
-    arp = sum(arp) / len(predicted)  # len(predicted)  is the number of users in the test set.
+    mean_arp = sum(arp) / len(predicted)  # len(predicted)  is the number of users in the test set.
 
-    return arp
+    return mean_arp, arp
 
 
 def average_percentage_of_long_tail_items(predicted, long_tail_items):
@@ -265,9 +266,9 @@ def average_percentage_of_long_tail_items(predicted, long_tail_items):
     for L_u in predicted:
         long_tail_items_in_u = len(list(set(L_u) & set(long_tail_items)))
         aplt.append(long_tail_items_in_u / len(L_u))
-    aplt = sum(aplt) / len(predicted)  # len(predicted)  is the number of users in the test set.
+    mean_aplt = sum(aplt) / len(predicted)  # len(predicted)  is the number of users in the test set.
 
-    return aplt
+    return mean_aplt, aplt
 
 
 def average_coverage_of_long_tail_items(predicted, long_tail_items):
@@ -293,9 +294,9 @@ def average_coverage_of_long_tail_items(predicted, long_tail_items):
     for L_u in predicted:
         long_tail_items_in_u = len(list(set(L_u) & set(long_tail_items)))
         aclt.append(long_tail_items_in_u)
-    aclt = sum(aclt) / len(predicted)  # len(predicted)  is the number of users in the test set.
+    mean_aclt = sum(aclt) / len(predicted)  # len(predicted)  is the number of users in the test set.
 
-    return aclt
+    return mean_aclt, aclt
 
 
 def ranking_based_statistical_parity(list_of_predictions, list_of_training, head_tail_items, long_tail_items):
@@ -319,26 +320,36 @@ def ranking_based_statistical_parity(list_of_predictions, list_of_training, head
             Ziwei Zhu, Jianling Wang, James Caverlee
             Measuring and Mitigating Item Under-Recommendation Bias in Personalized Ranking Systems. SIGIR 2020
         """
-
+    n = [[], []]
     numerators = [0, 0]
     for L_u in list_of_predictions:
         long_tail_items_in_u = len(list(set(L_u) & set(long_tail_items)))
         short_tail_items_in_u = len(list(set(L_u) & set(head_tail_items)))
         numerators[0] += short_tail_items_in_u
+        n[0].append(short_tail_items_in_u)
         numerators[1] += long_tail_items_in_u
+        n[1].append(long_tail_items_in_u)
 
+    d = [[], []]
     denominators = [0, 0]
     for T_u in list_of_training:
         long_tail_items_in_u = len(list(set(T_u) | set(long_tail_items)))
         short_tail_items_in_u = len(list(set(T_u) | set(head_tail_items)))
         denominators[0] += short_tail_items_in_u
+        d[0].append(short_tail_items_in_u)
         denominators[1] += long_tail_items_in_u
+        d[1].append(long_tail_items_in_u)
 
-    ps = [n / d for n, d in zip(numerators, denominators)]
+    ps = [nn / dd for nn, dd in zip(numerators, denominators)]
+
+    ps_by_u = [[], []]
+    for i, (nn, dd) in enumerate(zip(n, d)):
+        for nnn, ddd in zip(nn, dd):
+            ps_by_u[i].append(nnn / ddd)
 
     rsp = np.std(ps) / np.mean(ps)
 
-    return ps[0], ps[1], rsp
+    return ps[0], ps[1], rsp, ps_by_u[0], ps_by_u[1], np.std(ps_by_u, axis=0) / np.mean(ps_by_u, axis=0)
 
 
 def ranking_based_equal_opportunity(list_of_predictions, list_of_test, head_tail_items, long_tail_items):
@@ -365,26 +376,38 @@ def ranking_based_equal_opportunity(list_of_predictions, list_of_test, head_tail
             Ziwei Zhu, Jianling Wang, James Caverlee
             Measuring and Mitigating Item Under-Recommendation Bias in Personalized Ranking Systems. SIGIR 2020
         """
-
+    n = [[], []]
     numerators = [0, 0]  # counts how many items in test set from group-a are ranked in top-𝑘 for user u
     for index, L_u in enumerate(list_of_predictions):
-        long_tail_items_in_u = len(list(set(L_u) & set(long_tail_items) & set(list_of_test[index])))
         short_tail_items_in_u = len(list(set(L_u) & set(head_tail_items) & set(list_of_test[index])))
         numerators[0] += short_tail_items_in_u
-        numerators[1] += long_tail_items_in_u
+        n[0].append(short_tail_items_in_u)
 
+        long_tail_items_in_u = len(list(set(L_u) & set(long_tail_items) & set(list_of_test[index])))
+        numerators[1] += long_tail_items_in_u
+        n[1].append(long_tail_items_in_u)
+
+    d = [[], []]
     denominators = [0, 0]  # counts the total number of items from group-a in test set for user u.
     for index, T_u in enumerate(list_of_test):
-        long_tail_items_in_u = len(list(set(T_u) & set(long_tail_items)))
         short_tail_items_in_u = len(list(set(T_u) & set(head_tail_items)))
         denominators[0] += short_tail_items_in_u
+        d[0].append(short_tail_items_in_u)
+
+        long_tail_items_in_u = len(list(set(T_u) & set(long_tail_items)))
         denominators[1] += long_tail_items_in_u
+        d[1].append(long_tail_items_in_u)
 
     ps = [n / d for n, d in zip(numerators, denominators)]
 
+    ps_by_u = [[], []]
+    for i, (nn, dd) in enumerate(zip(n, d)):
+        for nnn, ddd in zip(nn, dd):
+            ps_by_u[i].append(0 if nnn == 0 else nnn / ddd)
+
     reo = np.std(ps) / np.mean(ps)
 
-    return ps[0], ps[1], reo
+    return ps[0], ps[1], reo, ps_by_u[0], ps_by_u[1], np.std(ps_by_u, axis=0) / np.mean(ps_by_u, axis=0)
 
 
 def _warn_for_empty_labels():
@@ -395,10 +418,11 @@ def _warn_for_empty_labels():
 
 def _mean_ranking_metric(predictions, labels, metric):
     """Helper function for precision_at_k and mean_average_precision"""
-    return np.mean([
+    ndcg_by_user = [
         metric(np.asarray(prd), np.asarray(labels[i]))
         for i, prd in enumerate(predictions)  # lazy eval if generator
-    ])
+    ]
+    return np.mean(ndcg_by_user), ndcg_by_user
 
 
 def _require_positive_k(k):
