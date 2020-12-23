@@ -14,10 +14,8 @@ from src.evaluation.read_results import read_prediction_lists, get_list_of_predi
     get_list_of_training, read_data, get_data_statistics
 from src.evaluation.metrics import compute_gini, get_head_tail_split, catalog_coverage, mark, novelty, \
     recommender_precision, recommender_recall, average_recommendation_popularity, average_percentage_of_long_tail_items, \
-    average_coverage_of_long_tail_items, ranking_based_statistical_parity, ranking_based_equal_opportunity, ndcg_at, get_starts
-
-
-
+    average_coverage_of_long_tail_items, ranking_based_statistical_parity, ranking_based_equal_opportunity, ndcg_at, \
+    get_stars
 
 
 def run():
@@ -212,7 +210,7 @@ def run():
                 )
 
         df_evaluation_bias[cfg.column_order_ttest].to_csv(os.path.join(cfg.output_rec_bias_dir, cfg.ttest_bias_results),
-                                                     index=None)
+                                                          index=None)
 
         print('Completed the T-Test of Bias evaluation on Dataset: {0}'.format(dataset))
 

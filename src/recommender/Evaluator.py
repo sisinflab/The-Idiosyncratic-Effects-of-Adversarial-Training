@@ -3,12 +3,9 @@ import heapq
 import numpy as np
 from multiprocessing import Pool
 from multiprocessing import cpu_count
-import sys
 import math
 from time import time
 import datetime
-
-from util import timethis
 
 _feed_dict = None
 _dataset = None

@@ -1,5 +1,7 @@
-import config.configs as cfg
 import pandas as pd
+
+
+import src.config.configs as cfg
 
 
 def read_prediction_lists(path_prediction_file):

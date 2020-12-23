@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 
 import matplotlib.pyplot as plt
 
-import config as cfg
+import src.config.configs as cfg
 
 
 def regress(x, y):
