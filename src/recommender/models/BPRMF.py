@@ -43,6 +43,8 @@ class BPRMF(RecommenderModel):
         self.evaluator = Evaluator(self, data, args.k)
         self.best = args.best
 
+        self.adv_eps = args.adv_eps
+
         # Initialize Model Parameters
         self.embedding_P = tf.Variable(
             tf.random.truncated_normal(shape=[self.num_users, self.embedding_size], mean=0.0, stddev=0.01),
@@ -253,15 +255,17 @@ class BPRMF(RecommenderModel):
             # Clean Inference
             output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(inputs=(user_input, item_input_pos))
             output_neg, beta_neg, embed_p_neg, embed_q_neg = self.get_inference(inputs=(user_input, item_input_neg))
+
             result = tf.clip_by_value(output_pos - output_neg, -80.0, 1e8)
             loss = tf.reduce_sum(tf.nn.softplus(-result))
+
             loss += self.reg * tf.reduce_mean(
                 tf.square(embed_p_pos) + tf.square(embed_q_pos) + tf.square(embed_q_neg))
 
         grad_P, grad_Q = tape_adv.gradient(loss, [self.embedding_P, self.embedding_Q])
         grad_P, grad_Q = tf.stop_gradient(grad_P), tf.stop_gradient(grad_Q)
-        self.delta_P = tf.nn.l2_normalize(grad_P, 1) * self.eps
-        self.delta_Q = tf.nn.l2_normalize(grad_Q, 1) * self.eps
+        self.delta_P = tf.nn.l2_normalize(grad_P, 1) * self.adv_eps
+        self.delta_Q = tf.nn.l2_normalize(grad_Q, 1) * self.adv_eps
 
     def attack_full_fgsm(self, attack_eps, attack_name=""):
         """
@@ -271,20 +275,34 @@ class BPRMF(RecommenderModel):
         :return:
         """
         # Set eps perturbation (budget)
-        self.eps = attack_eps
-        user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data._user_input))
+        self.adv_eps = attack_eps
+        # user_input, item_input_pos, item_input_neg = self.data.shuffle(self.data.num_users)
+        self.data.user_input, self.data.item_input_pos = self.data.sampling()
+        user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data.user_input))
+
         print('Initial Performance.')
-        self.evaluator.eval(self.restore_epochs, {}, 'BEST MODEL ' if self.best else str(self.restore_epochs))
+        results = {}
+        self.evaluator.eval(self.restore_epochs, results, 'BEST MODEL ' if self.best else str(self.restore_epochs))
 
         # Calculate Adversarial Perturbations
         self.fgsm_perturbation(user_input, item_input_pos, item_input_neg)
 
-        results = {}
         print('After Attack Performance.')
-        self.evaluator.eval(self.restore_epochs, results, 'BEST MODEL ' if self.best else str(self.restore_epochs))
+        attacked_results = {}
+        self.evaluator.eval(self.restore_epochs, attacked_results,
+                            'BEST MODEL ' if self.best else str(self.restore_epochs))
         self.evaluator.store_recommendation(attack_name=attack_name)
-        save_obj(results, '{0}/{1}-results'.format(self.path_output_rec_result,
+        results_tsv = '{0}/{1}-results.tsv'.format(self.path_output_rec_result,
                                                    attack_name + self.path_output_rec_result.split('/')[
-                                                       -2] + '_best{0}'.format(self.best)))
+                                                       -2] + '_best{0}'.format(self.best))
+
+        with open(results_tsv, 'w') as r:
+            r.write("Metric\tBefore\tAfter\tDelta\n")
+            for k, v in results[list(results.keys())[0]].items():
+                r.write("{}\t{}\t{}\t{}\n".format(k,
+                                                  v[0], attacked_results[list(attacked_results.keys())[0]][k][0],
+                                                  round((attacked_results[list(attacked_results.keys())[0]][k][
+                                                      0] - v[0]) * 100 / v[0], 2))
+                        )
 
         print('{0} - Completed!'.format(attack_name))

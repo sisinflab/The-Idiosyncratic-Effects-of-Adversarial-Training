@@ -1,50 +1,20 @@
-import argparse
+import sys
 import os
-import shutil
-import numpy as np
 
-from dataset.dataset import DataLoader
-from recommender.APR import APR
-from recommender.BPRMF import BPRMF
-from util.read import read_config
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# print(os.getcwd())
+
+from parser.parsers import train_parse_args, print_args
+from src.dataset.dataset import DataLoader
+from src.util.dir_manager import manage_directories, get_paths
+from src.util.general import get_model
+import src.config.configs as cfg
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Run Attack.")
-    parser.add_argument('--gpu', type=int, default=-1)
-    parser.add_argument('--dataset', nargs='?', default='movielens',
-                        help='dataset path: movielens, lastfm')
-    parser.add_argument('--rec', nargs='?', default="bprmf", help="bprmf, amf")
-    parser.add_argument('--batch_size', type=int, default=512, help='batch_size')
-    parser.add_argument('--k', type=int, default=10, help='top-k of recommendation.')
-    parser.add_argument('--epochs', type=int, default=2000, help='Number of epochs (Not Used in Run Attack)')
-    parser.add_argument('--verbose', type=int, default=1000,
-                        help='number of epochs to show the results ans store model parameters.')
-    parser.add_argument('--embed_size', type=int, default=64, help='Embedding size.')
-    parser.add_argument('--reg', type=float, default=0, help='Regularization for user and item embeddings.')
-    parser.add_argument('--lr', type=float, default=0.05, help='Learning rate.')
-    parser.add_argument('--restore_epochs', type=int, default=2000,
-                        help='Default is 1: It is the epoch value from which the attack will be executed.')
 
-    # Parameters useful during the adv. training
-    parser.add_argument('--adv_type', nargs='?', default="fgsm", help="fgsm, pgd as future work...")
-    parser.add_argument('--adv_iteration', type=int, default=10, help='Iterations for BIM/PGD Adversarial Training.')
-    parser.add_argument('--adv_step_size', type=int, default=4, help='Step Size for BIM/PGD ATTACK.')
-    parser.add_argument('--adv_reg', type=float, default=0, help='Regularization for adversarial loss')
-    parser.add_argument('--adv_eps', type=float, default=0.5, help='Epsilon for adversarial weights.')
-
-    # Parameters useful during the adv. attack (Are not useful here)
-    parser.add_argument('--attack_type', nargs='?', default="bim", help="fgsm, bim, pgd, deepFool, ...")
-    parser.add_argument('--attack_users', nargs='?', default="full", help="full, random (to be implemented), ...")
-    parser.add_argument('--attack_eps', type=float, default=0.5, help='Epsilon for adversarial ATTACK.')
-    parser.add_argument('--attack_step_size', type=int, default=4, help='Step Size for BIM/PGD ATTACK.')
-    parser.add_argument('--attack_iteration', type=int, default=10, help='Iterations for BIM/PGD ATTACK.')
-
-    # Select the Best Model?
-    parser.add_argument('--best', type=int, default=1,
-                        help='ATTACK The Best Model. 0 - Select the one specified in Restore/ 1 - Selects the Best Model')
-
-    return parser.parse_args()
 
 
 def attack():

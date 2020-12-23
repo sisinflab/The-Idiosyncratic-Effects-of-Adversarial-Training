@@ -139,7 +139,8 @@ class AMF(RecommenderModel):
             t.watch([self.item_bias, self.embedding_P, self.embedding_Q])
 
             # Clean Inference
-            self.output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(inputs=(user_input, item_input_pos))
+            self.output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(
+                inputs=(user_input, item_input_pos))
             self.output_neg, beta_neg, _, embed_q_neg = self.get_inference(inputs=(user_input, item_input_neg))
             result = tf.clip_by_value(self.output_pos - self.output_neg, -80.0, 1e8)
             loss = tf.reduce_sum(tf.nn.softplus(-result))
@@ -206,7 +207,9 @@ class AMF(RecommenderModel):
                 loss_batch = self._train_step(batch)
                 loss += loss_batch
 
-            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Avg Batch Losses) in {3}'.format(epoch, self.epochs, loss / steps, timer(start_ep, time()))
+            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Avg Batch Losses) in {3}'.format(epoch, self.epochs,
+                                                                                          loss / steps,
+                                                                                          timer(start_ep, time()))
             print(epoch_text)
 
             if epoch % self.verbose == 0:
@@ -275,7 +278,7 @@ class AMF(RecommenderModel):
         with tf.GradientTape() as tape_adv:
             tape_adv.watch([self.embedding_P, self.embedding_Q])
             # Clean Inference
-            output_pos, beta_pos,  embed_p_pos, embed_q_pos = self.get_inference(inputs=(user_input, item_input_pos))
+            output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(inputs=(user_input, item_input_pos))
             output_neg, beta_neg, embed_p_neg, embed_q_neg = self.get_inference(inputs=(user_input, item_input_neg))
 
             result = tf.clip_by_value(output_pos - output_neg, -80.0, 1e8)
@@ -289,29 +292,4 @@ class AMF(RecommenderModel):
         self.delta_P = tf.nn.l2_normalize(grad_P, 1) * self.adv_eps
         self.delta_Q = tf.nn.l2_normalize(grad_Q, 1) * self.adv_eps
 
-    def attack_full_fgsm(self, attack_eps, attack_name=""):
-        """
-        Create FGSM ATTACK
-        :param attack_eps:
-        :param attack_name:
-        :return:
-        """
-        # Set eps perturbation (budget)
-        self.adv_eps = attack_eps
-        user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data._user_input))
 
-        print('Initial Performance.')
-        self.evaluator.eval(self.restore_epochs, {}, 'BEST MODEL ' if self.best else str(self.restore_epochs))
-
-        # Calculate Adversarial Perturbations
-        self.fgsm_perturbation(user_input, item_input_pos, item_input_neg)
-
-        results = {}
-        print('After Attack Performance.')
-        self.evaluator.eval(self.restore_epochs, results, 'BEST MODEL ' if self.best else str(self.restore_epochs))
-        self.evaluator.store_recommendation(attack_name=attack_name)
-        save_obj(results, '{0}/{1}-results'.format(self.path_output_rec_result,
-                                                   attack_name + self.path_output_rec_result.split('/')[
-                                                       -2] + '_best{0}'.format(self.best)))
-
-        print('{0} - Completed!'.format(attack_name))

@@ -1,6 +1,19 @@
 import warnings
+from scipy import stats
 
 import numpy as np
+
+
+def get_stars(a, b):
+    p = stats.ttest_rel(a, b).pvalue
+    if p <= 0.001:
+        return '***'
+    elif p <= 0.01:
+        return '**'
+    elif p <= 0.05:
+        return '*'
+    else:
+        return ''
 
 
 def get_head_tail_split_8020(item_pop):

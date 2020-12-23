@@ -28,3 +28,43 @@ class RecommenderModel(tf.keras.Model):
 
     def restore(self):
         pass
+
+    def attack_full_fgsm(self, attack_eps, attack_name=""):
+        """
+        Create FGSM ATTACK
+        :param attack_eps:
+        :param attack_name:
+        :return:
+        """
+        # Set eps perturbation (budget)
+        self.adv_eps = attack_eps
+        # user_input, item_input_pos, item_input_neg = self.data.shuffle(self.data.num_users)
+        self.data.user_input, self.data.item_input_pos = self.data.sampling()
+        user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data.user_input))
+
+        print('Initial Performance.')
+        results = {}
+        self.evaluator.eval(self.restore_epochs, results, 'BEST MODEL ' if self.best else str(self.restore_epochs))
+
+        # Calculate Adversarial Perturbations
+        self.fgsm_perturbation(user_input, item_input_pos, item_input_neg)
+
+        print('After Attack Performance.')
+        attacked_results = {}
+        self.evaluator.eval(self.restore_epochs, attacked_results,
+                            'BEST MODEL ' if self.best else str(self.restore_epochs))
+        self.evaluator.store_recommendation(attack_name=attack_name)
+        results_tsv = '{0}/{1}-results.tsv'.format(self.path_output_rec_result,
+                                                   attack_name + self.path_output_rec_result.split('/')[
+                                                       -2] + '_best{0}'.format(self.best))
+
+        with open(results_tsv, 'w') as r:
+            r.write("Metric\tBefore\tAfter\tDelta\n")
+            for k, v in results[list(results.keys())[0]].items():
+                r.write("{}\t{}\t{}\t{}\n".format(k,
+                                                  v[0], attacked_results[list(attacked_results.keys())[0]][k][0],
+                                                  round((attacked_results[list(attacked_results.keys())[0]][k][
+                                                      0] - v[0]) * 100 / v[0], 2))
+                        )
+
+        print('{0} - Completed!'.format(attack_name))

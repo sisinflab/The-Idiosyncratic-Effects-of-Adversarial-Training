@@ -202,7 +202,7 @@ class DataLoader(object):
         global _train
         global _num_items
 
-        _user_input, _item_input_pos = self._user_input, self._item_input_pos
+        _user_input, _item_input_pos = self.user_input, self.item_input_pos
         _batch_size = batch_size
         _index = list(range(len(_user_input)))
         _train = self.train_list

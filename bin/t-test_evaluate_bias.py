@@ -2,33 +2,22 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-from scipy import stats
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from parser.parsers import ttest_eval_bias_parse_args, print_args
-from src.util.dir_manager import manage_directories_evaluate_results, get_paths
 import src.config.configs as cfg
 
 from src.evaluation.read_results import read_prediction_lists, get_list_of_predictions, get_list_of_test, \
     get_list_of_training, read_data, get_data_statistics
 from src.evaluation.metrics import compute_gini, get_head_tail_split, catalog_coverage, mark, novelty, \
     recommender_precision, recommender_recall, average_recommendation_popularity, average_percentage_of_long_tail_items, \
-    average_coverage_of_long_tail_items, ranking_based_statistical_parity, ranking_based_equal_opportunity, ndcg_at
+    average_coverage_of_long_tail_items, ranking_based_statistical_parity, ranking_based_equal_opportunity, ndcg_at, get_starts
 
 
-def get_stars(a, b):
-    p = stats.ttest_rel(a, b).pvalue
-    if p <= 0.001:
-        return '***'
-    elif p <= 0.01:
-        return '**'
-    elif p <= 0.05:
-        return '*'
-    else:
-        return ''
+
 
 
 def run():
