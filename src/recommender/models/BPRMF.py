@@ -107,10 +107,13 @@ class BPRMF(RecommenderModel):
         beta_i = tf.squeeze(tf.nn.embedding_lookup(self.item_bias, item))
         gamma_u = tf.squeeze(tf.nn.embedding_lookup(self.embedding_P + self.delta_P, user))
         gamma_i = tf.squeeze(tf.nn.embedding_lookup(self.embedding_Q + self.delta_Q, item))
-
-        xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, 1)
-
-        return xui, beta_i, gamma_u, gamma_i
+        try:
+            xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, 1)
+            return xui, beta_i, gamma_u, gamma_i
+        except:
+            print(gamma_u.shape, gamma_i.shape, (gamma_u*gamma_i).shape)
+            xui = beta_i + tf.reduce_sum(gamma_u * gamma_i,)
+            return xui, beta_i, gamma_u, gamma_i
 
     def predict_all(self):
         """
