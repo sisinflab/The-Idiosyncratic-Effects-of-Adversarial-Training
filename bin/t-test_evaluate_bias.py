@@ -103,11 +103,10 @@ def run():
                     'Model': name_of_prediction_list.split('_')[0],
                     'EmbK': int(name_of_prediction_list.split('_')[1].replace('emb', '')),
                     'TotEpoch': int(name_of_prediction_list.split('_')[2].replace('ep', '')),
-                    'Epsilon': float(
-                        name_of_prediction_list.split('_')[3].replace('XX', '0').replace('eps', '')),
-                    'Alpha': float(
-                        name_of_prediction_list.split('_')[4].replace('XX', '0').replace('alpha', '')),
-                    'Epoch': int(name_of_prediction_list.split('_')[6]),
+                    'LearnRate': int(name_of_prediction_list.split('_')[3].replace('lr', '')),
+                    'Epsilon': float(name_of_prediction_list.split('_')[4].replace('XX', '0').replace('eps', '')),
+                    'Alpha': float(name_of_prediction_list.split('_')[5].replace('XX', '0').replace('alpha', '')),
+                    'Epoch': int(name_of_prediction_list.split('_')[7]),
                     'Top-K': k,
                     'Precision': prec,
                     'Recall': recall,
@@ -174,11 +173,10 @@ def run():
                         'Model': name_of_prediction_list.split('_')[0],
                         'EmbK': int(name_of_prediction_list.split('_')[1].replace('emb', '')),
                         'TotEpoch': int(name_of_prediction_list.split('_')[2].replace('ep', '')),
-                        'Epsilon': float(
-                            name_of_prediction_list.split('_')[3].replace('XX', '0').replace('eps', '')),
-                        'Alpha': float(
-                            name_of_prediction_list.split('_')[4].replace('XX', '0').replace('alpha', '')),
-                        'Epoch': int(name_of_prediction_list.split('_')[6]),
+                        'LearnRate': int(name_of_prediction_list.split('_')[3].replace('lr', '')),
+                        'Epsilon': float(name_of_prediction_list.split('_')[4].replace('XX', '0').replace('eps', '')),
+                        'Alpha': float(name_of_prediction_list.split('_')[5].replace('XX', '0').replace('alpha', '')),
+                        'Epoch': int(name_of_prediction_list.split('_')[7]),
                         'Top-K': k,
                         'Precision': prec_b,
                         'Recall': recall_b,

@@ -2,9 +2,9 @@
 data_path = '../data/{0}/'
 InputTrainFile = '../data/{0}/trainingset.tsv'
 InputTestFile = '../data/{0}/testset.tsv'
-OutputRecResult = '../rec_result/{0}/{1}_{2}_{3}_{4}_{5}_{6}/'
-OutputRecWeight = '../rec_model_weight/{0}/{1}_{2}_{3}_{4}_{5}_{6}/'
-OutputRecList = '../rec_list/{0}/{1}_{2}_{3}_{4}_{5}_{6}/'
+OutputRecResult = '../rec_result/{0}/{1}_{2}_{3}_{4}_{5}_{6}_{7}/'
+OutputRecWeight = '../rec_model_weight/{0}/{1}_{2}_{3}_{4}_{5}_{6}_{7}/'
+OutputRecList = '../rec_list/{0}/{1}_{2}_{3}_{4}_{5}_{6}_{7}/'
 output_rec_list_dir = '../rec_list/{0}/'
 output_rec_plot_dir = '../rec_plot/{0}/'
 output_rec_bias_dir = '../rec_bias/{0}/'
@@ -34,7 +34,7 @@ score_field = 'score'
 time_field = 'time'
 
 
-column_order = ['Dataset', 'FileName', 'Model', 'EmbK', 'TotEpoch', 'Epsilon', 'Alpha', 'Epoch', 'Top-K', 'Coverage', 'Coverage[%]', 'Precision', 'Recall', 'MAR', 'nDCG', 'Novelty', 'ARP', 'APLT', 'ACLT', 'P_Pop', 'P_Tail', 'RSP', 'PC_Pop', 'PC_Tail', 'REO']
-column_order_ttest = ['Dataset', 'FileName', 'Model', 'EmbK', 'TotEpoch', 'Epsilon', 'Alpha', 'Epoch', 'Top-K', 'Precision', 'T-Precision', 'Recall', 'T-Recall', 'nDCG', 'T-nDCG',
+column_order = ['Dataset', 'FileName', 'Model', 'EmbK', 'TotEpoch', 'LearnRate', 'Epsilon', 'Alpha', 'Epoch', 'Top-K', 'Coverage', 'Coverage[%]', 'Precision', 'Recall', 'MAR', 'nDCG', 'Novelty', 'ARP', 'APLT', 'ACLT', 'P_Pop', 'P_Tail', 'RSP', 'PC_Pop', 'PC_Tail', 'REO']
+column_order_ttest = ['Dataset', 'FileName', 'Model', 'EmbK', 'TotEpoch', 'LearnRate', 'Epsilon', 'Alpha', 'Epoch', 'Top-K', 'Precision', 'T-Precision', 'Recall', 'T-Recall', 'nDCG', 'T-nDCG',
                       'Novelty', 'T-Novelty', 'ARP', 'T-ARP', 'APLT', 'T-APLT', 'ACLT', 'T-ACLT',
                       'P_Pop', 'T-P_Pop', 'P_Tail', 'T-P_Tail', 'RSP', 'T-RSP', 'PC_Pop', 'T-PC_Pop', 'PC_Tail', 'T-PC_Tail', 'REO', 'T-REO']
