@@ -16,28 +16,38 @@ import src.config.configs as cfg
 
 def run():
     args = train_parse_args()
+
     print_args(args)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
+    for adv_eps in args.list_adv_eps:
+        for adv_reg in args.list_adv_reg:
+            args.adv_eps, args.adv_reg = adv_eps, adv_reg
+            print('\tStart Adv.Eps. {} and Adv.Reg. {}'.format(adv_eps, adv_reg))
 
-    path_train_data, path_test_data, path_output_rec_result, path_output_rec_weight, path_output_rec_list = cfg.InputTrainFile, cfg.InputTestFile, cfg.OutputRecResult, cfg.OutputRecWeight, cfg.OutputRecList
+            path_train_data, path_test_data, path_output_rec_result, path_output_rec_weight, path_output_rec_list = cfg.InputTrainFile, cfg.InputTestFile, cfg.OutputRecResult, cfg.OutputRecWeight, cfg.OutputRecList
 
-    path_train_data, path_test_data, = path_train_data.format(args.dataset), path_test_data.format(args.dataset)
+            path_train_data, path_test_data, = path_train_data.format(args.dataset), path_test_data.format(args.dataset)
 
-    path_output_rec_result, path_output_rec_weight, path_output_rec_list = get_paths(args, path_output_rec_result, path_output_rec_weight, path_output_rec_list)
+            path_output_rec_result, path_output_rec_weight, path_output_rec_list = get_paths(args,
+                                                                                             path_output_rec_result,
+                                                                                             path_output_rec_weight,
+                                                                                             path_output_rec_list)
 
-    # Create directories to Store Results and Rec Models
-    manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
+            # Create directories to Store Results and Rec Models
+            manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
 
-    # Read Data
-    data = DataLoader(path_train_data=path_train_data
-                      , path_test_data=path_test_data,
-                      args=args)
+            # Read Data
+            data = DataLoader(path_train_data=path_train_data
+                              , path_test_data=path_test_data,
+                              args=args)
 
-    # Get Model
-    model = get_model(args, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list)
+            # Get Model
+            model = get_model(args, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list)
 
-    # Start the Training
-    model.train()
+            # Start the Training
+            model.train()
+
+            print('\tEnd Adv.Eps. {} and Adv.Reg. {}'.format(adv_eps, adv_reg))
 
 
 if __name__ == '__main__':

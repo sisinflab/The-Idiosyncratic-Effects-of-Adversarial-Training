@@ -62,6 +62,8 @@ def train_parse_args():
 
     # Adversarial Hyper-parameters
     parser.add_argument('--adv_type', nargs='?', default="fgsm", help="fgsm, future work other techniques...")
+    parser.add_argument("--list_adv_reg", nargs="+", default=[0], help='List of Regularization for adversarial loss')
+    parser.add_argument("--list_adv_eps", nargs="+", default=[0], help='List of Epsilons for adversarial weights.')
     parser.add_argument('--adv_reg', type=float, default=1.0, help='Regularization for adversarial loss')
     parser.add_argument('--adv_eps', type=float, default=0.5, help='Epsilon for adversarial weights.')
 
