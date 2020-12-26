@@ -257,10 +257,10 @@ class AMF(RecommenderModel):
                 print("Error in model restoring operation! {0}".format(ex.message))
                 return False
 
-        if self.restore_epochs > 1:
+        if self.restore_epochs >= 1:
             try:
                 checkpoint_file = find_checkpoint(self.path_output_rec_weight, self.restore_epochs, self.epochs,
-                                                  self.rec)
+                                                  self.rec, 0, (self.embedding_size, self.epochs, self.learning_rate))
                 saver_ckpt.restore(checkpoint_file)
                 print("Model correctly Restored at Epoch: {0}".format(self.restore_epochs))
                 return True

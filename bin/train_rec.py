@@ -22,7 +22,8 @@ def run():
     for adv_eps in args.list_adv_eps:
         for adv_reg in args.list_adv_reg:
             args.adv_eps, args.adv_reg = float(adv_eps), float(adv_reg)
-            print('\tStart Adv.Eps. {} and Adv.Reg. {}'.format(adv_eps, adv_reg))
+            if args.rec == 'amf':
+                print('\tStart Adv.Eps. {} and Adv.Reg. {}'.format(adv_eps, adv_reg))
 
             path_train_data, path_test_data, path_output_rec_result, path_output_rec_weight, path_output_rec_list = cfg.InputTrainFile, cfg.InputTestFile, cfg.OutputRecResult, cfg.OutputRecWeight, cfg.OutputRecList
 

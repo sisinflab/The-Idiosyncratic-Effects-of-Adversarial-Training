@@ -67,7 +67,7 @@ def load_obj(name):
         return pickle.load(f)
 
 
-def find_checkpoint(dir, restore_epochs, epochs, rec, best=0):
+def find_checkpoint(dir, restore_epochs, epochs, rec, best=0, params=None):
     """
 
     :param dir: directory of the model where we start from the reading.
@@ -88,7 +88,9 @@ def find_checkpoint(dir, restore_epochs, epochs, rec, best=0):
         # We have to restore from an execution of bprmf
         dir_stored_models = os.walk('/'.join(dir.split('/')[:-2]))
         for dir_stored_model in dir_stored_models:
-            if 'bprmf' in dir_stored_model[0]:
+            embed_size, epochs, lr = params
+            bprmf_path = '{0}{1}_{2}_{3}_{4}_{5}_{6}_{7}'.format('', 'bprmf', 'emb' + str(embed_size), 'ep' + str(epochs), 'lr' + str(lr), 'XX', 'XX', 'XX')
+            if bprmf_path in dir_stored_model[0]:
                 dir = dir_stored_model[0] + '/'
                 break
 
