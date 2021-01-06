@@ -225,11 +225,13 @@ class DataLoader(object):
         r_int = np.random.randint
         user_input, pos_input, neg_input = [], [], []
 
-        for ab in range(self.num_users):
-            u = r_int(self.num_users)
-            uis = set(self.train_list[u])
+        lus = range(self.num_users)
+        for u in np.random.shuffle(lus):
+            # u = r_int(self.num_users)
 
-            for i in uis:
+            uis = set(self.train_list[u])
+            for i in np.random.shuffle(uis):
+
                 j = r_int(self.num_items)
                 while j in uis:
                     j = r_int(self.num_items)
