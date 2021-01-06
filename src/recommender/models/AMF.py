@@ -116,8 +116,8 @@ class AMF(RecommenderModel):
             xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, 1)
             return xui, beta_i, gamma_u, gamma_i
         except:
-            print(gamma_u.shape, gamma_i.shape, (gamma_u*gamma_i).shape)
-            xui = beta_i + tf.reduce_sum(gamma_u * gamma_i,)
+            # print(gamma_u.shape, gamma_i.shape, (gamma_u * gamma_i).shape)
+            xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, )
             return xui, beta_i, gamma_u, gamma_i
 
     def predict_all(self):
@@ -233,7 +233,6 @@ class AMF(RecommenderModel):
                 saver_ckpt.save('{0}/weights-{1}'.format(self.path_output_rec_weight, epoch))
                 # Save Rec Lists
                 self.evaluator.store_recommendation(epoch=epoch)
-
         print('Training Ended')
 
         print("Store The Results of the Training")
@@ -244,6 +243,110 @@ class AMF(RecommenderModel):
         saver_ckpt = tf.train.Checkpoint(optimizer=self.optimizer, model=best_model)
         saver_ckpt.save('{0}/best-weights-{1}'.format(self.path_output_rec_weight, best_epoch))
         best_model.evaluator.store_recommendation(epoch=best_epoch)
+
+    def train_to_build_plots(self):
+
+        adv_eps, adv_reg = self.adv_eps, self.adv_reg
+        self.adv_eps, self.adv_reg = 0, 0  # We need to disable the AMF for the first half of epochs
+
+        print('Start training...')
+
+        # Dictionary where for each item associates a list. In this list we store the gradient magnitude in each epoch
+        positive_gradient_magnitudes, negative_gradient_magnitudes = {}, {}
+        adv_positive_gradient_magnitudes, adv_negative_gradient_magnitudes = {}, {}
+        start_epoch = time()
+
+        adv_text = ''
+
+        for epoch in range(1, self.epochs + 1):
+
+            if epoch > self.epochs // 2:
+                self.adv_eps = adv_eps
+                self.adv_reg = adv_reg
+                adv_text = '(Adv. alpha: {}\teps: {})'.format(self.adv_reg, self.adv_eps)
+
+            print('\tEpoch: {}/{}\t{}'.format(epoch, self.epochs, adv_text))
+
+            positive_gradient_magnitudes[epoch], negative_gradient_magnitudes[epoch] = {}, {}
+            adv_positive_gradient_magnitudes[epoch], adv_negative_gradient_magnitudes[epoch] = {}, {}
+
+            for item_id in range(self.num_items):
+                positive_gradient_magnitudes[epoch][item_id], negative_gradient_magnitudes[epoch][item_id] = [], []
+                adv_positive_gradient_magnitudes[epoch][item_id], adv_negative_gradient_magnitudes[epoch][
+                    item_id] = [], []
+
+            steps = 0
+
+            next_batch = self.data.next_triple_batch()
+
+            for batch in next_batch:
+                steps += 1
+
+                if steps % 10000 == 0:
+                    print('\t\t{} in {}'.format(steps, timer(start_epoch, time())))
+                    start_epoch = time()
+
+                user_input, item_input_pos, item_input_neg = batch
+
+                # Restore Deltas for the Perturbation
+                self.set_delta(delta_init=0)
+
+                with tf.GradientTape() as t:
+                    t.watch([self.item_bias, self.embedding_P, self.embedding_Q])
+
+                    # Clean Inference
+                    output_pos, beta_pos, embed_p_pos, embed_q_pos = self.get_inference(
+                        inputs=(user_input, item_input_pos))
+                    output_neg, beta_neg, _, embed_q_neg = self.get_inference(inputs=(user_input, item_input_neg))
+                    result = tf.clip_by_value(output_pos - output_neg, -80.0, 1e8)
+                    loss = tf.reduce_sum(tf.nn.softplus(-result))
+
+                    # Gradient Magnitude
+                    gradient_magnitude = (1 - tf.math.sigmoid(-result))
+                    positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(gradient_magnitude.numpy())
+                    negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-gradient_magnitude.numpy())
+
+                    # Regularization Component
+                    reg_loss = self.reg * tf.reduce_sum([tf.nn.l2_loss(embed_p_pos),
+                                                         tf.nn.l2_loss(embed_q_pos),
+                                                         tf.nn.l2_loss(embed_q_neg)]) \
+                               + self.bias_reg * tf.nn.l2_loss(beta_pos) \
+                               + self.bias_reg * tf.nn.l2_loss(beta_neg) / 10
+
+                    loss += reg_loss
+
+                    if self.adv_reg != 0:
+
+                        # Restore Deltas for the Perturbation
+                        self.set_delta(delta_init=self.adv_type == 'pgd')
+
+                        # Adversarial Training Component
+                        if self.adv_type == 'fgsm':
+                            self.fgsm_perturbation(user_input, item_input_pos, item_input_neg)
+
+                        # Adversarial Inference
+                        output_pos_adver, _, _, _ = self.get_inference(inputs=(user_input, item_input_pos))
+                        output_neg_adver, _, _, _ = self.get_inference(inputs=(user_input, item_input_neg))
+
+                        result_adver = tf.clip_by_value(output_pos_adver - output_neg_adver, -80.0, 1e8)
+                        loss_adver = tf.reduce_sum(tf.nn.softplus(-result_adver))
+
+                        # Adversarial Gradient Magnitude
+                        adv_gradient_magnitude = (1 - tf.math.sigmoid(-result_adver))
+                        adv_positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(adv_gradient_magnitude.numpy())
+                        adv_negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-adv_gradient_magnitude.numpy())
+
+                        # Loss to be optimized
+                        loss += self.adv_reg * loss_adver
+
+                gradients = t.gradient(loss, [self.item_bias, self.embedding_P, self.embedding_Q])
+                self.optimizer.apply_gradients(zip(gradients, [self.item_bias, self.embedding_P, self.embedding_Q]))
+
+            print('\t\t{} in {}'.format(steps, timer(start_epoch, time())))
+
+        print('Training Ended')
+
+        return positive_gradient_magnitudes, negative_gradient_magnitudes, adv_positive_gradient_magnitudes, adv_negative_gradient_magnitudes
 
     def restore(self):
         saver_ckpt = tf.train.Checkpoint(optimizer=self.optimizer, model=self)
@@ -295,5 +398,3 @@ class AMF(RecommenderModel):
         grad_P, grad_Q = tf.stop_gradient(grad_P), tf.stop_gradient(grad_Q)
         self.delta_P = tf.nn.l2_normalize(grad_P, 1) * self.adv_eps
         self.delta_Q = tf.nn.l2_normalize(grad_Q, 1) * self.adv_eps
-
-

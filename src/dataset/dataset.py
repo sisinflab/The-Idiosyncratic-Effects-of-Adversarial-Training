@@ -50,7 +50,7 @@ class DataLoader(object):
         self.params = args
 
         self.num_users, self.num_items = self.get_length(path_train_data, path_test_data)
-        self.load_train_file(path_train_data)
+        # self.load_train_file(path_train_data)
 
         self.path_train_data = path_train_data
         self.path_validation_data = None
@@ -88,7 +88,8 @@ class DataLoader(object):
             data = train.copy()
             data = data.append(test, ignore_index=True)
 
-        return data['user'].nunique(), data['item'].nunique()
+        # return data['user'].nunique(), data['item'].nunique()
+        return max(data['user'].unique())+1, max(data['item'].unique())+1
 
     def load_train_file(self, filename):
         """
@@ -239,7 +240,7 @@ class DataLoader(object):
 
         return user_input, pos_input, neg_input,
 
-    # @timethis
+    @timethis
     def next_triple_batch(self):
         all_triples = self.all_triple_batches()
         data = tf.data.Dataset.from_tensor_slices(all_triples)

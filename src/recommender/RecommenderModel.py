@@ -39,6 +39,7 @@ class RecommenderModel(tf.keras.Model):
         # Set eps perturbation (budget)
         self.adv_eps = attack_eps
         # user_input, item_input_pos, item_input_neg = self.data.shuffle(self.data.num_users)
+        self.data.load_train_file(self.data.path_train_data)
         self.data.user_input, self.data.item_input_pos = self.data.sampling()
         user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data.user_input))
 

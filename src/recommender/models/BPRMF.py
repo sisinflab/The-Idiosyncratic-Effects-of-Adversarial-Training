@@ -30,7 +30,8 @@ class BPRMF(RecommenderModel):
         :param path_output_rec_weight: path to the directory rec. model parameters
         :param args: parameters
         """
-        super(BPRMF, self).__init__(data, path_output_rec_result, path_output_rec_weight, path_output_rec_list, args.rec)
+        super(BPRMF, self).__init__(data, path_output_rec_result, path_output_rec_weight, path_output_rec_list,
+                                    args.rec)
         self.embedding_size = args.embed_size
         self.learning_rate = args.lr
         self.reg = args.reg
@@ -111,8 +112,8 @@ class BPRMF(RecommenderModel):
             xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, 1)
             return xui, beta_i, gamma_u, gamma_i
         except:
-            print(gamma_u.shape, gamma_i.shape, (gamma_u*gamma_i).shape)
-            xui = beta_i + tf.reduce_sum(gamma_u * gamma_i,)
+            print(gamma_u.shape, gamma_i.shape, (gamma_u * gamma_i).shape)
+            xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, )
             return xui, beta_i, gamma_u, gamma_i
 
     def predict_all(self):
@@ -187,7 +188,9 @@ class BPRMF(RecommenderModel):
                 loss_batch = self._train_step(batch)
                 loss += loss_batch
 
-            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Avg Batch Losses) in {3}'.format(epoch, self.epochs, loss / steps, timer(start_ep, time()))
+            epoch_text = 'Epoch {0}/{1} \tLoss: {2:.3f} (Avg Batch Losses) in {3}'.format(epoch, self.epochs,
+                                                                                          loss / steps,
+                                                                                          timer(start_ep, time()))
             print(epoch_text)
 
             if epoch % self.verbose == 0:
@@ -280,6 +283,7 @@ class BPRMF(RecommenderModel):
         # Set eps perturbation (budget)
         self.adv_eps = attack_eps
         # user_input, item_input_pos, item_input_neg = self.data.shuffle(self.data.num_users)
+        self.data.load_train_file(self.data.path_train_data)
         self.data.user_input, self.data.item_input_pos = self.data.sampling()
         user_input, item_input_pos, item_input_neg = self.data.shuffle(len(self.data.user_input))
 
@@ -305,7 +309,7 @@ class BPRMF(RecommenderModel):
                 r.write("{}\t{}\t{}\t{}\n".format(k,
                                                   v[0], attacked_results[list(attacked_results.keys())[0]][k][0],
                                                   round((attacked_results[list(attacked_results.keys())[0]][k][
-                                                      0] - v[0]) * 100 / v[0], 2))
+                                                             0] - v[0]) * 100 / v[0], 2))
                         )
 
         print('{0} - Completed!'.format(attack_name))
