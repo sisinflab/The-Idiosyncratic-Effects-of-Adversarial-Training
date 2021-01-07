@@ -16,6 +16,12 @@ import src.config.configs as cfg
 from src.util.write import save_obj
 from src.util.read import load_obj
 
+color_thresholds = {
+    0.01: 'green',
+    0.1: 'blue',
+    0.5: 'black'
+}
+
 
 def run():
     args = build_gradient_magnitude_plot_parse_args()
@@ -41,7 +47,7 @@ def run():
                                                                                      path_output_rec_result,
                                                                                      path_output_rec_weight,
                                                                                      path_output_rec_list)
-    path_output_rec_result, path_output_rec_weight, path_output_rec_list = 'build'+path_output_rec_result, 'build'+path_output_rec_weight, 'build'+path_output_rec_list
+    path_output_rec_result, path_output_rec_weight, path_output_rec_list = 'build' + path_output_rec_result, 'build' + path_output_rec_weight, 'build' + path_output_rec_list
     # Create directories to Store Results and Rec Models
     manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
 
@@ -62,34 +68,37 @@ def run():
         # Save Object
         save_obj(positive_gradient_magnitudes,
                  '{0}{1}-positive_gradient_magnitudes'.format(path_output_rec_result,
-                                                               path_output_rec_result.split('/')[-2]))
+                                                              path_output_rec_result.split('/')[-2]))
         save_obj(negative_gradient_magnitudes,
                  '{0}{1}-negative_gradient_magnitudes'.format(path_output_rec_result,
-                                                               path_output_rec_result.split('/')[-2]))
+                                                              path_output_rec_result.split('/')[-2]))
         save_obj(adv_positive_gradient_magnitudes,
                  '{0}{1}-adv_positive_gradient_magnitudes'.format(path_output_rec_result,
-                                                                   path_output_rec_result.split('/')[-2]))
+                                                                  path_output_rec_result.split('/')[-2]))
         save_obj(adv_negative_gradient_magnitudes,
                  '{0}{1}-adv_negative_gradient_magnitudes'.format(path_output_rec_result,
-                                                                   path_output_rec_result.split('/')[-2]))
+                                                                  path_output_rec_result.split('/')[-2]))
     else:
         print('Load the Model Results to Monitor the Gradient Magnitudes')
 
         positive_gradient_magnitudes = load_obj(
             '{0}{1}-positive_gradient_magnitudes'.format(path_output_rec_result,
                                                          path_output_rec_result.split('/')[-2]))
-        # negative_gradient_magnitudes = load_obj(
-        #     '{0}{1}-negative_gradient_magnitudes'.format(path_output_rec_result,
-        #                                                   path_output_rec_result.split('/')[-2]))
-        # adv_positive_gradient_magnitudes = load_obj(
-        #     '{0}{1}-adv_positive_gradient_magnitudes'.format(path_output_rec_result,
-        #                                                       path_output_rec_result.split('/')[-2]))
-        # adv_negative_gradient_magnitudes = load_obj(
-        #     '{0}{1}-adv_negative_gradient_magnitudes'.format(path_output_rec_result,
-        #                                                       path_output_rec_result.split('/')[-2]))
+        negative_gradient_magnitudes = load_obj(
+            '{0}{1}-negative_gradient_magnitudes'.format(path_output_rec_result,
+                                                         path_output_rec_result.split('/')[-2]))
+        adv_positive_gradient_magnitudes = load_obj(
+            '{0}{1}-adv_positive_gradient_magnitudes'.format(path_output_rec_result,
+                                                             path_output_rec_result.split('/')[-2]))
+        adv_negative_gradient_magnitudes = load_obj(
+            '{0}{1}-adv_negative_gradient_magnitudes'.format(path_output_rec_result,
+                                                             path_output_rec_result.split('/')[-2]))
 
     print('Start the Generation of the Probability by Training Epochs on BPR-MF')
     generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes)
+
+    generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+                                                  adv_positive_gradient_magnitudes)
 
 
 def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes):
@@ -97,7 +106,7 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
     x_axes = sorted(list(positive_gradient_magnitudes.keys()))[:num_epochs // 2]
     # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
 
-    thresholds = [0.01, 0.5]
+    thresholds = [0.01, 0.1, 0.5]
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {}'.format(threshold))
@@ -108,15 +117,70 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
             num_updated_under_threshold = 0
             for item_id in positive_gradient_magnitudes[epoch].keys():
                 for per_item_update in positive_gradient_magnitudes[epoch][item_id]:
-                    if per_item_update.numpy() <= threshold:
+                    if per_item_update.numpy() < threshold:
                         num_updated_under_threshold += 1
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, label='T')
+        plt.plot(x_axes, y_axes, color_thresholds[threshold]+'-', label='T: {}'.format(threshold))
+
+    plt.xlabel = 'Training Epochs'
+    plt.ylabel = 'Probability'
+    plt.legend()
 
     # plt.show()
-    plt.imsave('{0}{1}-bprmf-prob-iter'.format(path_output_rec_result, path_output_rec_result.split('/')[-2]), format='png')
+    plt.imsave('{0}{1}-bprmf-until{2}-prob-iter'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
+                                                        num_epochs // 2), format='png')
+
+
+def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+                                                  adv_positive_gradient_magnitudes):
+    num_epochs = len(list(positive_gradient_magnitudes.keys()))
+    x_axes = sorted(list(positive_gradient_magnitudes.keys()))[num_epochs // 2 + 1:]
+    # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
+
+    thresholds = [0.01, 0.1, 0.5]
+
+    for threshold in thresholds:
+        print('\tPlotting for threshold: {}'.format(threshold))
+        # We have 2 y-axes. One for each threshold.
+        y_axes = []
+        for epoch in x_axes:
+            num_update = 0
+            num_updated_under_threshold = 0
+            for item_id in positive_gradient_magnitudes[epoch].keys():
+                for per_item_update in positive_gradient_magnitudes[epoch][item_id]:
+                    if per_item_update.numpy() < threshold:
+                        num_updated_under_threshold += 1
+                    num_update += 1
+            y_axes.append(num_updated_under_threshold / num_update)
+
+        plt.plot(x_axes, y_axes, color_thresholds[threshold]+'-', label='T: {}'.format(threshold))
+
+    for threshold in thresholds:
+        print('\tPlotting for threshold: {} (Adversarial Setting)'.format(threshold))
+        # We have 2 y-axes. One for each threshold.
+        y_axes = []
+        for epoch in x_axes:
+            num_update = 0
+            num_updated_under_threshold = 0
+            for item_id in adv_positive_gradient_magnitudes[epoch].keys():
+                for per_item_update in adv_positive_gradient_magnitudes[epoch][item_id]:
+                    if per_item_update.numpy() < threshold:
+                        num_updated_under_threshold += 1
+                    num_update += 1
+            y_axes.append(num_updated_under_threshold / num_update)
+
+        plt.plot(x_axes, y_axes, color_thresholds[threshold]+'--', label='T: {}'.format(threshold))
+
+    plt.xlabel = 'Training Epochs'
+    plt.ylabel = 'Probability'
+    plt.legend()
+
+    # plt.show()
+    plt.imsave(
+        '{0}{1}-bprmf-amf-until{2}-prob-iter'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
+                                                     num_epochs), format='png')
 
 
 if __name__ == '__main__':
