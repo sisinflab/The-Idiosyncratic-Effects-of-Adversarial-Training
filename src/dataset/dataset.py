@@ -244,7 +244,7 @@ class DataLoader(object):
 
         return user_input, pos_input, neg_input,
 
-    @timethis
+    # @timethis
     def next_triple_batch(self):
         all_triples = self.all_triple_batches()
         data = tf.data.Dataset.from_tensor_slices(all_triples)
