@@ -48,15 +48,15 @@ def run():
                                                                                            path_output_rec_weight,
                                                                                            path_output_rec_list)
 
-    # Create directories to Store Results and Rec Models
-    manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
-
     # Read Data
     data = DataLoader(path_train_data=path_train_data
                       , path_test_data=path_test_data,
                       args=args)
 
     if args.train:
+        # Create directories to Store Results and Rec Models
+        manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
+
         print('Train the Model to Monitor the Gradient Magnitudes')
         # Get Model
         model = get_model(args, data, path_output_rec_result, path_output_rec_weight, path_output_rec_list)
@@ -97,6 +97,7 @@ def run():
     print('Start the Generation of the Probability by Training Epochs on BPR-MF')
     generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes)
 
+    print('Start the Generation of the Probability by Training Epochs on AMF')
     generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
                                                   adv_positive_gradient_magnitudes)
 
@@ -122,21 +123,21 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, color_thresholds[threshold] + '-', label='T: {}'.format(threshold))
+        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold], label='T: {}'.format(threshold))
 
     plt.xlabel = 'Training Epochs'
     plt.ylabel = 'Probability'
     plt.legend()
 
     # plt.show()
-    plt.imsave('{0}{1}-bprmf-until{2}-prob-iter'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
+    plt.savefig('{0}{1}-bprmf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
                                                         num_epochs // 2), format='png')
 
 
 def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
                                                   adv_positive_gradient_magnitudes):
     num_epochs = len(list(positive_gradient_magnitudes.keys()))
-    x_axes = sorted(list(positive_gradient_magnitudes.keys()))[num_epochs // 2 + 1:]
+    x_axes = sorted(list(positive_gradient_magnitudes.keys()))[num_epochs // 2:]
     # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
 
     thresholds = [0.01, 0.1, 0.5]
@@ -155,7 +156,7 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, color_thresholds[threshold] + '-', label='T: {}'.format(threshold))
+        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold], label='T: {}'.format(threshold))
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {} (Adversarial Setting)'.format(threshold))
@@ -171,15 +172,15 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, color_thresholds[threshold] + '--', label='T: {}'.format(threshold))
+        plt.plot(x_axes, y_axes, '--', color=color_thresholds[threshold], label='T: {} (Adv.)'.format(threshold))
 
     plt.xlabel = 'Training Epochs'
     plt.ylabel = 'Probability'
     plt.legend()
 
     # plt.show()
-    plt.imsave(
-        '{0}{1}-bprmf-amf-until{2}-prob-iter'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
+    plt.savefig(
+        '{0}{1}-bprmf-amf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
                                                      num_epochs), format='png')
 
 
