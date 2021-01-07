@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from parser.parsers import build_gradient_magnitude_plot_parse_args, print_args
 from src.dataset.dataset import DataLoader
-from src.util.dir_manager import get_paths
+from src.util.dir_manager import get_paths, manage_directories
 from src.util.general import get_model
 import src.config.configs as cfg
 from src.util.write import save_obj
@@ -41,9 +41,9 @@ def run():
                                                                                      path_output_rec_result,
                                                                                      path_output_rec_weight,
                                                                                      path_output_rec_list)
-
+    path_output_rec_result, path_output_rec_weight, path_output_rec_list = 'build'+path_output_rec_result, 'build'+path_output_rec_weight, 'build'+path_output_rec_list
     # Create directories to Store Results and Rec Models
-    # manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
+    manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
 
     # Read Data
     data = DataLoader(path_train_data=path_train_data
@@ -89,13 +89,13 @@ def run():
         #                                                       path_output_rec_result.split('/')[-2]))
 
     print('Start the Generation of the Probability by Training Epochs on BPR-MF')
-    generate_plot_probability_of_grad_magn(positive_gradient_magnitudes)
+    generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes)
 
 
-def generate_plot_probability_of_grad_magn(positive_gradient_magnitudes):
+def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes):
     num_epochs = len(list(positive_gradient_magnitudes.keys()))
-    # x_axes = sorted(list(positive_gradient_magnitudes.keys()))[:num_epochs // 2]
-    x_axes = sorted(list(positive_gradient_magnitudes.keys()))
+    x_axes = sorted(list(positive_gradient_magnitudes.keys()))[:num_epochs // 2]
+    # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
 
     thresholds = [0.01, 0.5]
 
@@ -115,7 +115,8 @@ def generate_plot_probability_of_grad_magn(positive_gradient_magnitudes):
 
         plt.plot(x_axes, y_axes, label='T')
 
-    plt.show()
+    # plt.show()
+    plt.imsave('{0}{1}-bprmf-prob-iter'.format(path_output_rec_result, path_output_rec_result.split('/')[-2]), format='png')
 
 
 if __name__ == '__main__':
