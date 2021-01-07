@@ -117,7 +117,7 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
             num_updated_under_threshold = 0
             for item_id in positive_gradient_magnitudes[epoch].keys():
                 for per_item_update in positive_gradient_magnitudes[epoch][item_id]:
-                    if per_item_update.numpy() < threshold:
+                    if per_item_update < threshold:
                         num_updated_under_threshold += 1
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
@@ -150,7 +150,7 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
             num_updated_under_threshold = 0
             for item_id in positive_gradient_magnitudes[epoch].keys():
                 for per_item_update in positive_gradient_magnitudes[epoch][item_id]:
-                    if per_item_update.numpy() < threshold:
+                    if per_item_update < threshold:
                         num_updated_under_threshold += 1
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
@@ -166,7 +166,7 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
             num_updated_under_threshold = 0
             for item_id in adv_positive_gradient_magnitudes[epoch].keys():
                 for per_item_update in adv_positive_gradient_magnitudes[epoch][item_id]:
-                    if per_item_update.numpy() < threshold:
+                    if per_item_update < threshold:
                         num_updated_under_threshold += 1
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
