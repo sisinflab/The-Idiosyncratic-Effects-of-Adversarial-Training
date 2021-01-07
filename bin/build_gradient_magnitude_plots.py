@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from parser.parsers import build_gradient_magnitude_plot_parse_args, print_args
 from src.dataset.dataset import DataLoader
-from src.util.dir_manager import get_paths, manage_directories
+from src.util.dir_manager import manage_directories, get_paths_build
 from src.util.general import get_model
 import src.config.configs as cfg
 from src.util.write import save_obj
@@ -43,11 +43,11 @@ def run():
 
     path_train_data, path_test_data, = path_train_data.format(args.dataset), path_test_data.format(args.dataset)
 
-    path_output_rec_result, path_output_rec_weight, path_output_rec_list = get_paths(args,
-                                                                                     path_output_rec_result,
-                                                                                     path_output_rec_weight,
-                                                                                     path_output_rec_list)
-    path_output_rec_result, path_output_rec_weight, path_output_rec_list = 'build' + path_output_rec_result, 'build' + path_output_rec_weight, 'build' + path_output_rec_list
+    path_output_rec_result, path_output_rec_weight, path_output_rec_list = get_paths_build(args,
+                                                                                           path_output_rec_result,
+                                                                                           path_output_rec_weight,
+                                                                                           path_output_rec_list)
+
     # Create directories to Store Results and Rec Models
     manage_directories(path_output_rec_result, path_output_rec_weight, path_output_rec_list)
 
@@ -122,7 +122,7 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, color_thresholds[threshold]+'-', label='T: {}'.format(threshold))
+        plt.plot(x_axes, y_axes, color_thresholds[threshold] + '-', label='T: {}'.format(threshold))
 
     plt.xlabel = 'Training Epochs'
     plt.ylabel = 'Probability'
@@ -155,7 +155,7 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, color_thresholds[threshold]+'-', label='T: {}'.format(threshold))
+        plt.plot(x_axes, y_axes, color_thresholds[threshold] + '-', label='T: {}'.format(threshold))
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {} (Adversarial Setting)'.format(threshold))
@@ -171,7 +171,7 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, color_thresholds[threshold]+'--', label='T: {}'.format(threshold))
+        plt.plot(x_axes, y_axes, color_thresholds[threshold] + '--', label='T: {}'.format(threshold))
 
     plt.xlabel = 'Training Epochs'
     plt.ylabel = 'Probability'
