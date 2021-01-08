@@ -53,6 +53,7 @@ def run():
         list_of_test = get_list_of_test(test)
         list_of_training = get_list_of_training(train, test[cfg.user_field].unique())
         for k in args.list_k:
+            k = int(k)
             print('K={}'.format(k))
 
             # Evaluate_predictions_of_group_a
@@ -103,7 +104,7 @@ def run():
                     'Model': name_of_prediction_list.split('_')[0],
                     'EmbK': int(name_of_prediction_list.split('_')[1].replace('emb', '')),
                     'TotEpoch': int(name_of_prediction_list.split('_')[2].replace('ep', '')),
-                    'LearnRate': int(name_of_prediction_list.split('_')[3].replace('lr', '')),
+                    'LearnRate': float(name_of_prediction_list.split('_')[3].replace('lr', '')),
                     'Epsilon': float(name_of_prediction_list.split('_')[4].replace('XX', '0').replace('eps', '')),
                     'Alpha': float(name_of_prediction_list.split('_')[5].replace('XX', '0').replace('alpha', '')),
                     'Epoch': int(name_of_prediction_list.split('_')[7]),
@@ -173,7 +174,7 @@ def run():
                         'Model': name_of_prediction_list.split('_')[0],
                         'EmbK': int(name_of_prediction_list.split('_')[1].replace('emb', '')),
                         'TotEpoch': int(name_of_prediction_list.split('_')[2].replace('ep', '')),
-                        'LearnRate': int(name_of_prediction_list.split('_')[3].replace('lr', '')),
+                        'LearnRate': float(name_of_prediction_list.split('_')[3].replace('lr', '')),
                         'Epsilon': float(name_of_prediction_list.split('_')[4].replace('XX', '0').replace('eps', '')),
                         'Alpha': float(name_of_prediction_list.split('_')[5].replace('XX', '0').replace('alpha', '')),
                         'Epoch': int(name_of_prediction_list.split('_')[7]),

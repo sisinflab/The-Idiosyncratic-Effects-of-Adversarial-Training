@@ -107,7 +107,7 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
     x_axes = sorted(list(positive_gradient_magnitudes.keys()))[:num_epochs // 2]
     # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
 
-    thresholds = [0.01, 0.1, 0.5]
+    thresholds = [0.01, 0.5]
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {}'.format(threshold))
@@ -136,11 +136,12 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
 
 def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
                                                   adv_positive_gradient_magnitudes):
+    plt.figure()
     num_epochs = len(list(positive_gradient_magnitudes.keys()))
     x_axes = sorted(list(positive_gradient_magnitudes.keys()))[num_epochs // 2:]
     # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
 
-    thresholds = [0.01, 0.1, 0.5]
+    thresholds = [0.01, 0.5]
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {}'.format(threshold))
