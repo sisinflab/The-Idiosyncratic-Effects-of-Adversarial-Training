@@ -101,6 +101,12 @@ def run():
     generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
                                                   adv_positive_gradient_magnitudes)
 
+    print(
+        'Start the Generation of the SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
+    generate_plot_sum_of_update_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+                                                    adv_positive_gradient_magnitudes, negative_gradient_magnitudes,
+                                                    adv_negative_gradient_magnitudes)
+
 
 def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes):
     num_epochs = len(list(positive_gradient_magnitudes.keys()))
@@ -130,8 +136,9 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
     plt.legend()
 
     # plt.show()
-    plt.savefig('{0}{1}-bprmf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
-                                                        num_epochs // 2), format='png')
+    plt.savefig(
+        '{0}{1}-bprmf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
+                                                     num_epochs // 2), format='png')
 
 
 def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
@@ -182,7 +189,13 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
     # plt.show()
     plt.savefig(
         '{0}{1}-bprmf-amf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
-                                                     num_epochs), format='png')
+                                                         num_epochs), format='png')
+
+
+def generate_plot_sum_of_update_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+                                                    adv_positive_gradient_magnitudes, negative_gradient_magnitudes,
+                                                    adv_negative_gradient_magnitudes):
+    pass
 
 
 if __name__ == '__main__':
