@@ -15,9 +15,9 @@ def manage_directories(path_output_rec_result, path_output_rec_weight, path_outp
 
 
 def manage_directories_evaluate_results(path_to_be_create):
-    if os.path.exists(os.path.dirname(path_to_be_create)):
-        shutil.rmtree(os.path.dirname(path_to_be_create))
-    os.makedirs(os.path.dirname(path_to_be_create))
+    if not os.path.exists(os.path.dirname(path_to_be_create)):
+        # shutil.rmtree(os.path.dirname(path_to_be_create))
+        os.makedirs(os.path.dirname(path_to_be_create))
 
 
 def get_paths(args, path_output_rec_result, path_output_rec_weight, path_output_rec_list):

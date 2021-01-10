@@ -70,84 +70,85 @@ def run():
 
         for directory_of_trained_models in os.listdir(path_rec_list):
             for name_of_prediction_list in os.listdir(os.path.join(path_rec_list, directory_of_trained_models)):
-                if 'fgsm' not in name_of_prediction_list:
-                    print('\tEvaluate {} on'.format(name_of_prediction_list))
-                    predictions = read_prediction_lists(
-                        os.path.join(os.path.join(path_rec_list, directory_of_trained_models, name_of_prediction_list)))
-                    for k in args.list_k:
-                        print('\t\tK={}'.format(k))
-                        list_of_predictions = get_list_of_predictions(predictions, test[cfg.user_field].unique(), k)
+                # if 'fgsm' not in name_of_prediction_list:
+                print('\tEvaluate {} on'.format(name_of_prediction_list))
+                predictions = read_prediction_lists(
+                    os.path.join(os.path.join(path_rec_list, directory_of_trained_models, name_of_prediction_list)))
+                for k in args.list_k:
+                    print('\t\tK={}'.format(k))
+                    list_of_predictions = get_list_of_predictions(predictions, test[cfg.user_field].unique(), k)
 
-                        # Coverage
-                        coverage, percentage_of_coverage = catalog_coverage(list_of_predictions, catalog, k)
+                    # Coverage
+                    coverage, percentage_of_coverage = catalog_coverage(list_of_predictions, catalog, k)
 
-                        # Precision and Recall
-                        prec, _ = recommender_precision(list_of_predictions, list_of_test)
-                        recall, _ = recommender_recall(list_of_predictions, list_of_test)
+                    # Precision and Recall
+                    prec, _ = recommender_precision(list_of_predictions, list_of_test)
+                    recall, _ = recommender_recall(list_of_predictions, list_of_test)
 
-                        # Mean Average Recall
-                        mar = mark(list_of_test, list_of_predictions, k=10)
+                    # Mean Average Recall
+                    mar = mark(list_of_test, list_of_predictions, k=10)
 
-                        # nDCG
-                        ndcg, _ = ndcg_at(list_of_predictions, list_of_test, k=k, assume_unique=True)
+                    # nDCG
+                    ndcg, _ = ndcg_at(list_of_predictions, list_of_test, k=k, assume_unique=True)
 
-                        # Novelty
-                        nov, _ = novelty(list_of_predictions, dict_item_pop, num_users, k)
+                    # Novelty
+                    nov, _ = novelty(list_of_predictions, dict_item_pop, num_users, k)
 
-                        # Bias Measures
+                    # Bias Measures
 
-                        # # Used by Himan Abdollahpouri
-                        # # # Average Recommendation Popularity(ARP):
-                        arp, _ = average_recommendation_popularity(list_of_predictions, dict_item_pop)
-                        # # # Average Percentage of Long Tail Items (APLT):
-                        aplt, _ = average_percentage_of_long_tail_items(list_of_predictions, long_tail_items)
-                        # # # Average Coverage of Long Tail items (ACLT):
-                        aclt, _ = average_coverage_of_long_tail_items(list_of_predictions, long_tail_items)
+                    # # Used by Himan Abdollahpouri
+                    # # # Average Recommendation Popularity(ARP):
+                    arp, _ = average_recommendation_popularity(list_of_predictions, dict_item_pop)
+                    # # # Average Percentage of Long Tail Items (APLT):
+                    aplt, _ = average_percentage_of_long_tail_items(list_of_predictions, long_tail_items)
+                    # # # Average Coverage of Long Tail items (ACLT):
+                    aclt, _ = average_coverage_of_long_tail_items(list_of_predictions, long_tail_items)
 
-                        # # Proposed by Ziwei Zhu et al. -> Lower values indicate the recommendations are less biased
-                        # # # Ranking-based Statistical Parity (RSP)
-                        p_pop, p_tail, rsp, _, _, _ = ranking_based_statistical_parity(list_of_predictions, list_of_training,
-                                                                              head_tail_items, long_tail_items)
-                        # # # Ranking-based Equal Opportunity (REO)
-                        pc_pop, pc_tail, reo, _, _, _ = ranking_based_equal_opportunity(list_of_predictions, list_of_test,
-                                                                               head_tail_items, long_tail_items)
+                    # # Proposed by Ziwei Zhu et al. -> Lower values indicate the recommendations are less biased
+                    # # # Ranking-based Statistical Parity (RSP)
+                    p_pop, p_tail, rsp, _, _, _ = ranking_based_statistical_parity(list_of_predictions, list_of_training,
+                                                                          head_tail_items, long_tail_items)
+                    # # # Ranking-based Equal Opportunity (REO)
+                    pc_pop, pc_tail, reo, _, _, _ = ranking_based_equal_opportunity(list_of_predictions, list_of_test,
+                                                                           head_tail_items, long_tail_items)
 
-                        # if 'bprmf' in name_of_prediction_list:
-                        #     plot_item_popularity_by_recommendation_frequency(name_of_prediction_list, original, predictions, item_pop, dataset, num_users, k)
+                    # if 'bprmf' in name_of_prediction_list:
+                    #     plot_item_popularity_by_recommendation_frequency(name_of_prediction_list, original, predictions, item_pop, dataset, num_users, k)
 
-                        df_evaluation_bias = df_evaluation_bias.append(
-                            {
-                                'Dataset': dataset,
-                                'FileName': name_of_prediction_list,
-                                'Model': name_of_prediction_list.split('_')[0],
-                                'EmbK': int(name_of_prediction_list.split('_')[1].replace('emb', '')),
-                                'TotEpoch': int(name_of_prediction_list.split('_')[2].replace('ep', '')),
-                                'LearnRate': float(name_of_prediction_list.split('_')[3].replace('lr', '')),
-                                'Epsilon': float(
-                                    name_of_prediction_list.split('_')[4].replace('XX', '0').replace('eps', '')),
-                                'Alpha': float(
-                                    name_of_prediction_list.split('_')[5].replace('XX', '0').replace('alpha', '')),
-                                'Epoch': int(name_of_prediction_list.split('_')[7]),
-                                'Top-K': k,
-                                'Coverage': coverage,
-                                'Coverage[%]': percentage_of_coverage,
-                                'Precision': prec,
-                                'Recall': recall,
-                                'MAR': mar,
-                                'nDCG': ndcg,
-                                'Novelty': nov,
-                                'ARP': arp,
-                                'APLT': aplt,
-                                'ACLT': aclt,
-                                'P_Pop': p_pop,
-                                'P_Tail': p_tail,
-                                'RSP': rsp,
-                                'PC_Pop': pc_pop,
-                                'PC_Tail': pc_tail,
-                                'REO': reo
-                            }, ignore_index=True
-                        )
+                    df_evaluation_bias = df_evaluation_bias.append(
+                        {
+                            'Dataset': dataset,
+                            'FileName': name_of_prediction_list,
+                            'Model': name_of_prediction_list.split('_')[0],
+                            'EmbK': int(name_of_prediction_list.split('_')[1].replace('emb', '')),
+                            'TotEpoch': int(name_of_prediction_list.split('_')[2].replace('ep', '')),
+                            'LearnRate': float(name_of_prediction_list.split('_')[3].replace('lr', '')),
+                            'Epsilon': float(
+                                name_of_prediction_list.split('_')[4].replace('XX', '0').replace('eps', '')),
+                            'Alpha': float(
+                                name_of_prediction_list.split('_')[5].replace('XX', '0').replace('alpha', '')),
+                            'Epoch': int(name_of_prediction_list.split('_')[7]),
+                            'Top-K': k,
+                            'Coverage': coverage,
+                            'Coverage[%]': percentage_of_coverage,
+                            'Precision': prec,
+                            'Recall': recall,
+                            'MAR': mar,
+                            'nDCG': ndcg,
+                            'Novelty': nov,
+                            'ARP': arp,
+                            'APLT': aplt,
+                            'ACLT': aclt,
+                            'P_Pop': p_pop,
+                            'P_Tail': p_tail,
+                            'RSP': rsp,
+                            'PC_Pop': pc_pop,
+                            'PC_Tail': pc_tail,
+                            'REO': reo
+                        }, ignore_index=True
+                    )
 
+        df_evaluation_bias.sort_values(by=['Model', 'EmbK', 'TotEpoch', 'LearnRate', 'Epsilon', 'Alpha', 'Top-K', 'Epoch'])
         df_evaluation_bias[cfg.column_order].to_csv(os.path.join(cfg.output_rec_bias_dir, cfg.bias_results), index=None)
 
         print('Completed the Bias evaluation on Dataset: {0}'.format(dataset))
