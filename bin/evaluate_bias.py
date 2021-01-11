@@ -38,7 +38,7 @@ def run():
         manage_directories_evaluate_results(cfg.output_rec_plot_dir)
         manage_directories_evaluate_results(cfg.output_rec_bias_dir)
 
-        train, test = read_data(dataset)
+        train, test =  train, test = read_data(dataset)(dataset)
 
         catalog = sorted(train[cfg.item_field].unique())
 
@@ -52,16 +52,16 @@ def run():
         for item_id in set(range(num_items)).difference(set(item_pop.index)):
             dict_item_pop[item_id] = 0
 
-        head_tail_split = get_head_tail_split(item_pop, num_items)
+        short_head_split = get_head_tail_split(item_pop, num_items)
 
-        head_tail_items = np.array(item_pop[:head_tail_split].index)
-        long_tail_items = np.array(item_pop[head_tail_split:].index)
+        short_head_items = np.array(item_pop[:short_head_split].index)
+        long_tail_items = np.array(item_pop[short_head_split:].index)
 
         # Compute Gini Index of Rated Items
-        print('Head Tail', compute_gini(item_pop[:head_tail_split]))
-        print('Long Tail', compute_gini(item_pop[head_tail_split:]))
+        print('Short Head', compute_gini(item_pop[:short_head_split]))
+        print('Long Tail', compute_gini(item_pop[short_head_split:]))
 
-        # plot_item_popularity(item_pop, head_tail_split, os.path.join(cfg.output_rec_plot_dir, cfg.item_popularity_plot))
+        # plot_item_popularity(item_pop, short_head_split, os.path.join(cfg.output_rec_plot_dir, cfg.item_popularity_plot))
 
         path_rec_list = cfg.output_rec_list_dir.format(dataset)
 
@@ -107,10 +107,10 @@ def run():
                     # # Proposed by Ziwei Zhu et al. -> Lower values indicate the recommendations are less biased
                     # # # Ranking-based Statistical Parity (RSP)
                     p_pop, p_tail, rsp, _, _, _ = ranking_based_statistical_parity(list_of_predictions, list_of_training,
-                                                                          head_tail_items, long_tail_items)
+                                                                          short_head_items, long_tail_items)
                     # # # Ranking-based Equal Opportunity (REO)
                     pc_pop, pc_tail, reo, _, _, _ = ranking_based_equal_opportunity(list_of_predictions, list_of_test,
-                                                                           head_tail_items, long_tail_items)
+                                                                           short_head_items, long_tail_items)
 
                     # if 'bprmf' in name_of_prediction_list:
                     #     plot_item_popularity_by_recommendation_frequency(name_of_prediction_list, original, predictions, item_pop, dataset, num_users, k)
