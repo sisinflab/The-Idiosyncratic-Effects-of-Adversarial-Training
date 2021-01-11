@@ -113,7 +113,7 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
     x_axes = sorted(list(positive_gradient_magnitudes.keys()))[:num_epochs // 2]
     # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
 
-    thresholds = [0.01, 0.5]
+    thresholds = [0.01, 0.1, 0.5]
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {}'.format(threshold))
@@ -124,12 +124,15 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
             num_updated_under_threshold = 0
             for item_id in positive_gradient_magnitudes[epoch].keys():
                 for per_item_update in positive_gradient_magnitudes[epoch][item_id]:
+                    # import math
+                    # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001))  # *-1
+                    # per_item_update = 1 - 1 / (1 + math.exp(-z))
                     if per_item_update < threshold:
                         num_updated_under_threshold += 1
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold], label='T: {}'.format(threshold))
+        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold], label='Grad. Magnitude < {}'.format(threshold))
 
     plt.xlabel = 'Training Epochs'
     plt.ylabel = 'Probability'
@@ -139,6 +142,7 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
     plt.savefig(
         '{0}{1}-bprmf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
                                                      num_epochs // 2), format='png')
+    plt.close()
 
 
 def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
@@ -148,7 +152,7 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
     x_axes = sorted(list(positive_gradient_magnitudes.keys()))[num_epochs // 2:]
     # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
 
-    thresholds = [0.01, 0.5]
+    thresholds = [0.01, 0.1, 0.5]
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {}'.format(threshold))
@@ -159,12 +163,15 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
             num_updated_under_threshold = 0
             for item_id in positive_gradient_magnitudes[epoch].keys():
                 for per_item_update in positive_gradient_magnitudes[epoch][item_id]:
+                    # import math
+                    # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001))  # *-1
+                    # per_item_update = 1 - 1 / (1 + math.exp(-z))
                     if per_item_update < threshold:
                         num_updated_under_threshold += 1
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold], label='T: {}'.format(threshold))
+        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold], label='Grad. Magnitude < {}'.format(threshold))
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {} (Adversarial Setting)'.format(threshold))
@@ -175,12 +182,16 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
             num_updated_under_threshold = 0
             for item_id in adv_positive_gradient_magnitudes[epoch].keys():
                 for per_item_update in adv_positive_gradient_magnitudes[epoch][item_id]:
+                    # import math
+                    # z = math.log(
+                    #     per_item_update / (1 - per_item_update + 0.0000000000000001) + 0.0000000000000001)  # *-1
+                    # per_item_update = 1 - 1 / (1 + math.exp(-z))
                     if per_item_update < threshold:
                         num_updated_under_threshold += 1
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, '--', color=color_thresholds[threshold], label='T: {} (Adv.)'.format(threshold))
+        plt.plot(x_axes, y_axes, '--', color=color_thresholds[threshold], label='Adv. Grad. Magnitude < {}'.format(threshold))
 
     plt.xlabel = 'Training Epochs'
     plt.ylabel = 'Probability'

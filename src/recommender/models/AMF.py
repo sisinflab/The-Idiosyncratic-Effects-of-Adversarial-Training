@@ -302,7 +302,7 @@ class AMF(RecommenderModel):
                     loss = tf.reduce_sum(tf.nn.softplus(-result))
 
                     # Gradient Magnitude
-                    gradient_magnitude = (1 - tf.math.sigmoid(-result))
+                    gradient_magnitude = (1 - tf.math.sigmoid(result))
                     positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(gradient_magnitude.numpy())
                     negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-gradient_magnitude.numpy())
 
@@ -332,7 +332,7 @@ class AMF(RecommenderModel):
                         loss_adver = tf.reduce_sum(tf.nn.softplus(-result_adver))
 
                         # Adversarial Gradient Magnitude
-                        adv_gradient_magnitude = (1 - tf.math.sigmoid(-result_adver))
+                        adv_gradient_magnitude = (1 - tf.math.sigmoid(result_adver))
                         adv_positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(adv_gradient_magnitude.numpy())
                         adv_negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-adv_gradient_magnitude.numpy())
 
