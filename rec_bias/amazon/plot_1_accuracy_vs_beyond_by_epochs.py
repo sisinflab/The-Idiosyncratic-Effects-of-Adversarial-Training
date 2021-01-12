@@ -1,25 +1,30 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-results = pd.read_csv('[Amazon] Accuracy vs Novelty on TOP-10 - Sheet1.csv')
+# results = pd.read_csv('[Amazon] Accuracy vs Novelty on TOP-10 - Sheet1.csv')
+results = pd.read_csv('[Amazon] Gain on TOP-10.csv')
 
-x_axes = sorted(results['Epoch'].unique())
+epsilon = 1.0
+alpha = 0.1
+x_axes = sorted(results[results['Epoch'] >= 125]['Epoch'].unique())
 
 y_recall_bprmf = []
 for x in x_axes:
-    y_recall_bprmf.append(results[(results['Model'] == 'BPR-MF') & (results['Epoch'] == x)]['Recall'].values[0])
+    y_recall_bprmf.append(results[(results['Model'] == 'bprmf') & (results['Epoch'] == x)]['Recall'].values[0])
 
 y_recall_amf = []
 for x in x_axes:
-    y_recall_amf.append(results[(results['Model'] == 'AMF') & (results['Epoch'] == x)]['Recall'].values[0])
+    y_recall_amf.append(
+        results[(results['Model'] == 'amf') & (results['Epoch'] == x) & (results['Epsilon'] == epsilon) & (results['Alpha'] == alpha)][
+            'Recall'].values[0])
 
 y_novelty_bprmf = []
 for x in x_axes:
-    y_novelty_bprmf.append(results[(results['Model'] == 'BPR-MF') & (results['Epoch'] == x)]['Novelty'].values[0])
+    y_novelty_bprmf.append(results[(results['Model'] == 'bprmf') & (results['Epoch'] == x)]['Novelty'].values[0])
 
 y_novelty_amf = []
 for x in x_axes:
-    y_novelty_amf.append(results[(results['Model'] == 'AMF') & (results['Epoch'] == x)]['Novelty'].values[0])
+    y_novelty_amf.append(results[(results['Model'] == 'amf') & (results['Epoch'] == x) & (results['Epsilon'] == epsilon) & (results['Alpha'] == alpha)]['Novelty'].values[0])
 
 plt.figure()
 plt.xlabel('Epoch')
@@ -63,6 +68,5 @@ L2 = plt.legend()
 
 fig.tight_layout()  # otherwise the right y-label is slightly clipped
 
-
 # plt.show()
-plt.savefig('plot_1_accuracy_vs_beyond.png', format='png')
+plt.savefig('plot_1_accuracy_vs_beyond_by_epochs.png', format='png')

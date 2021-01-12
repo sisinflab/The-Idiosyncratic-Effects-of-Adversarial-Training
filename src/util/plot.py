@@ -31,8 +31,8 @@ def plot_item_popularity(item_pop, head_tail_split, path_name):
 
     plt.xlabel('Items ranked by popularity')
     plt.ylabel('Number of ratings in the dataset')
-    plt.plot(range(head_tail_split), item_pop.values[:head_tail_split], lw=3, alpha=0.7, label=r'Short head')
-    plt.plot(range(head_tail_split, len(item_pop.index)), item_pop.values[head_tail_split:], lw=3, label=r'Long tail')
+    plt.plot(range(head_tail_split), item_pop.values[:head_tail_split], lw=3, alpha=0.7, label=r'Short Head')
+    plt.plot(range(head_tail_split, len(item_pop.index)), item_pop.values[head_tail_split:], lw=3, label=r'Long Tail')
     plt.axvline(x=head_tail_split, linestyle='--', lw=1, c='grey')
     plt.xlim([-25, len(item_pop.index)])
     plt.ylim([-25, item_pop.values[0]])

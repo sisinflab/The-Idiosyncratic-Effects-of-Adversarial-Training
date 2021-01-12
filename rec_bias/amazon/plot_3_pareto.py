@@ -32,8 +32,7 @@ results = pd.read_csv('[Amazon] Gain on TOP-10.csv')
 # results = results[results['Epoch'] == 200]
 x_axes = sorted(results['Alpha'].unique())[1:]
 x2 = np.arange(len(x_axes))
-accuracy_bprmf = max(results[results['Model'] == 'bprmf']['Recall'])
-beyond_accuracy_bprmf = max(results[results['Model'] == 'bprmf']['Novelty'])
+
 
 scores = []
 for epsilon in sorted(results['Epsilon'].unique()):
@@ -82,3 +81,65 @@ plt.legend()
 # plt.show()
 plt.savefig('plot_3_pareto.png', format='png')
 
+# pareto on Differences
+
+colors = ['yellow', 'black', 'blue', 'green', 'orange']
+plt.figure()
+
+plt.hlines(0, xmin=-0.15, xmax=0.1, colors=['grey'], )
+plt.vlines(0, ymin=-0.1, ymax=0.1,colors=['grey'])
+
+scores = []
+accuracy_bprmf = max(results[results['Model'] == 'bprmf']['Recall'])
+beyond_accuracy_bprmf = max(results[results['Model'] == 'bprmf']['Novelty'])
+for i, epsilon in enumerate(sorted(results['Epsilon'].unique())):
+    if epsilon > 0:
+        # We have AMF
+        x, y = [], []
+        for alpha in x_axes:
+            for epoch in sorted(results[(results['Model'] == 'amf') & (results['Epsilon'] == epsilon) & (
+                    results['Alpha'] == alpha)]['Epoch'].to_list()):
+                accuracy_amf = max(
+                    results[
+                        (results['Model'] == 'amf') & (results['Epsilon'] == epsilon) & (results['Alpha'] == alpha) & (
+                                    results['Epoch'] == epoch)][
+                        'Recall'])
+                accuracy_amf = (accuracy_amf - accuracy_bprmf)/accuracy_bprmf
+
+                beyond_accuracy_amf = max(
+                    results[
+                        (results['Model'] == 'amf') & (results['Epsilon'] == epsilon) & (results['Alpha'] == alpha) & (
+                                    results['Epoch'] == epoch)][
+                        'Novelty'])
+                beyond_accuracy_amf = (beyond_accuracy_amf - beyond_accuracy_bprmf)/beyond_accuracy_amf
+
+            scores.append([accuracy_amf, beyond_accuracy_amf])
+            x.append(accuracy_amf)
+            y.append(beyond_accuracy_amf)
+        plt.scatter(x, y, label='eps={}'.format(epsilon), color=colors[i])
+
+scores = np.array(scores)
+pareto = identify_pareto(scores)
+print('Pareto front index vales')
+print('Points on Pareto front: \n', pareto)
+
+pareto_front = scores[pareto]
+print('\nPareto front scores')
+print(pareto_front)
+
+pareto_front_df = pd.DataFrame(pareto_front)
+pareto_front_df.sort_values(0, inplace=True)
+pareto_front = pareto_front_df.values
+
+x_pareto = pareto_front[:, 0]
+y_pareto = pareto_front[:, 1]
+
+plt.plot(x_pareto, y_pareto, '--', color='r')
+plt.xlabel('Delta Accuracy')
+plt.ylabel('Delta Novelty')
+plt.xlim(-0.15, 0.1)
+plt.ylim(-0.1,0.1)
+
+plt.legend()
+# plt.show()
+plt.savefig('plot_3_pareto_delta_improvements.png', format='png')

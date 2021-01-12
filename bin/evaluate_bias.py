@@ -38,7 +38,7 @@ def run():
         manage_directories_evaluate_results(cfg.output_rec_plot_dir)
         manage_directories_evaluate_results(cfg.output_rec_bias_dir)
 
-        train, test =  train, test = read_data(dataset)(dataset)
+        train, test = read_data(dataset)
 
         catalog = sorted(train[cfg.item_field].unique())
 
@@ -61,7 +61,7 @@ def run():
         print('Short Head', compute_gini(item_pop[:short_head_split]))
         print('Long Tail', compute_gini(item_pop[short_head_split:]))
 
-        # plot_item_popularity(item_pop, short_head_split, os.path.join(cfg.output_rec_plot_dir, cfg.item_popularity_plot))
+        plot_item_popularity(item_pop, short_head_split, os.path.join(cfg.output_rec_plot_dir, cfg.item_popularity_plot))
 
         path_rec_list = cfg.output_rec_list_dir.format(dataset)
 
