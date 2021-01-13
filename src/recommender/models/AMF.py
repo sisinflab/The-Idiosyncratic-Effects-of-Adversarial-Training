@@ -283,7 +283,7 @@ class AMF(RecommenderModel):
             for batch in next_batch:
                 steps += 1
 
-                if steps % 10000 == 0:
+                if steps % 1 == 0:
                     print('\t\t{} in {}'.format(steps, timer(start_epoch, time())))
                     start_epoch = time()
 
