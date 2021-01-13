@@ -304,7 +304,10 @@ class AMF(RecommenderModel):
 
                     # Gradient Magnitude
                     gradient_magnitude = (1 - tf.math.sigmoid(result))
-                    positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(gradient_magnitude.numpy())
+                    # positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(gradient_magnitude.numpy())
+                    # negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-gradient_magnitude.numpy())
+                    print(type(gradient_magnitude))
+                    positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(gradient_magnitude)
                     negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-gradient_magnitude.numpy())
 
                     # Regularization Component
