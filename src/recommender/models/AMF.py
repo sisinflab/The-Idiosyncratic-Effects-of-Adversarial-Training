@@ -244,7 +244,7 @@ class AMF(RecommenderModel):
         saver_ckpt.save('{0}/best-weights-{1}'.format(self.path_output_rec_weight, best_epoch))
         best_model.evaluator.store_recommendation(epoch=best_epoch)
 
-    @tf.function
+    # @tf.function
     def train_to_build_plots(self):
 
         adv_eps, adv_reg = self.adv_eps, self.adv_reg
@@ -304,11 +304,11 @@ class AMF(RecommenderModel):
 
                     # Gradient Magnitude
                     gradient_magnitude = (1 - tf.math.sigmoid(result))
-                    # positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(gradient_magnitude.numpy())
-                    # negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-gradient_magnitude.numpy())
-                    print(type(gradient_magnitude))
-                    positive_gradient_magnitudes[epoch][int(item_input_pos[0])].append(gradient_magnitude)
-                    negative_gradient_magnitudes[epoch][int(item_input_neg[0])].append(-gradient_magnitude.numpy())
+                    positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(gradient_magnitude.numpy())
+                    negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-gradient_magnitude.numpy())
+                    # print(type(gradient_magnitude))
+                    # positive_gradient_magnitudes[epoch][int(item_input_pos[0])].append(gradient_magnitude)
+                    # negative_gradient_magnitudes[epoch][int(item_input_neg[0])].append(-gradient_magnitude.numpy())
 
                     # Regularization Component
                     reg_loss = self.reg * tf.reduce_sum([tf.nn.l2_loss(embed_p_pos),
