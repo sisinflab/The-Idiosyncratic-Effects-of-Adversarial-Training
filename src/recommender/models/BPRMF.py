@@ -112,7 +112,7 @@ class BPRMF(RecommenderModel):
             xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, 1)
             return xui, beta_i, gamma_u, gamma_i
         except:
-            print(gamma_u.shape, gamma_i.shape, (gamma_u * gamma_i).shape)
+            # print(gamma_u.shape, gamma_i.shape, (gamma_u * gamma_i).shape)
             xui = beta_i + tf.reduce_sum(gamma_u * gamma_i, )
             return xui, beta_i, gamma_u, gamma_i
 
