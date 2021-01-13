@@ -113,4 +113,4 @@ currentAxis = plt.gca()
 currentAxis.add_patch(patches.Rectangle((0, 0), 0.1, 0.1, linewidth=1, edgecolor='r', facecolor='grey', alpha=0.5))
 
 # plt.show()
-plt.savefig('plot_3_pareto_{0}-{1}-Top{2}.png'.format(accuracy_metric, beyond_accuracy_metric, top_k), format='png')
+plt.savefig('./Plot3/pareto_{0}-{1}-Top{2}.png'.format(accuracy_metric, beyond_accuracy_metric, top_k), format='png')

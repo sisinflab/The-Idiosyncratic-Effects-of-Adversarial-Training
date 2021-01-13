@@ -52,5 +52,5 @@ plt.ylabel('{0} on {1} Gain'.format(accuracy_metric, beyond_accuracy_metric))
 plt.xticks(x2, x_axes)
 plt.legend()
 # plt.show()
-plt.savefig('plot_2_{0}-{1}_gain_by_alpha-Top{2}.png'.format(accuracy_metric, beyond_accuracy_metric, top_k), format='png')
+plt.savefig('./Plot2/{0}-{1}_gain_by_alpha-Top{2}.png'.format(accuracy_metric, beyond_accuracy_metric, top_k), format='png')
 

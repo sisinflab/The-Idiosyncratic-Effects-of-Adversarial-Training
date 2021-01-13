@@ -244,6 +244,7 @@ class AMF(RecommenderModel):
         saver_ckpt.save('{0}/best-weights-{1}'.format(self.path_output_rec_weight, best_epoch))
         best_model.evaluator.store_recommendation(epoch=best_epoch)
 
+    @tf.function
     def train_to_build_plots(self):
 
         adv_eps, adv_reg = self.adv_eps, self.adv_reg

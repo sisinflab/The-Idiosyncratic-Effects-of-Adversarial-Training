@@ -47,7 +47,7 @@ plt.plot(x_axes, y_recall_bprmf, '--', color='black', label='BPR-MF')
 plt.plot(x_axes, y_recall_amf, '-', color='red', label='AMF')
 plt.legend()
 # plt.show()
-plt.savefig('Amazon-Plot-{0}-Top{1}.png'.format(accuracy_metric, top_k), format='png')
+plt.savefig('./Plot1/Amazon-{0}-Top{1}.png'.format(accuracy_metric, top_k), format='png')
 
 # Put Figures Together
 plt.figure()
@@ -57,7 +57,7 @@ plt.plot(x_axes, y_novelty_bprmf, '--', color='black', label='BPR-MF')
 plt.plot(x_axes, y_novelty_amf, '-', color='red', label='AMF')
 plt.legend()
 # plt.show()
-plt.savefig('Amazon-Plot-{0}-Top{1}.png'.format(beyond_accuracy_metric, top_k), format='png')
+plt.savefig('./Plot1/Amazon-{0}-Top{1}.png'.format(beyond_accuracy_metric, top_k), format='png')
 
 fig, ax1 = plt.subplots()
 
@@ -83,4 +83,4 @@ L2 = plt.legend()
 fig.tight_layout()  # otherwise the right y-label is slightly clipped
 
 # plt.show()
-plt.savefig('plot_1_{0}_vs_{1}_by_epochs-Top{2}.png'.format(accuracy_metric, beyond_accuracy_metric, top_k), format='png')
+plt.savefig('./Plot1/{0}_vs_{1}_by_epochs-Top{2}.png'.format(accuracy_metric, beyond_accuracy_metric, top_k), format='png')
