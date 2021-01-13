@@ -307,8 +307,8 @@ class AMF(RecommenderModel):
                     # positive_gradient_magnitudes[epoch][item_input_pos.numpy()[0]].append(gradient_magnitude.numpy())
                     # negative_gradient_magnitudes[epoch][item_input_neg.numpy()[0]].append(-gradient_magnitude.numpy())
                     print(type(gradient_magnitude))
-                    positive_gradient_magnitudes[epoch][item_input_pos[0]].append(gradient_magnitude)
-                    negative_gradient_magnitudes[epoch][item_input_neg[0]].append(-gradient_magnitude.numpy())
+                    positive_gradient_magnitudes[epoch][int(item_input_pos[0])].append(gradient_magnitude)
+                    negative_gradient_magnitudes[epoch][int(item_input_neg[0])].append(-gradient_magnitude.numpy())
 
                     # Regularization Component
                     reg_loss = self.reg * tf.reduce_sum([tf.nn.l2_loss(embed_p_pos),
