@@ -4,10 +4,9 @@ import pandas as pd
 # results = pd.read_csv('[Amazon] Accuracy vs Novelty on TOP-10 - Sheet1.csv')
 results = pd.read_csv('bias_results.csv')
 
-top_k = 100
+top_k = 50
 lr = 0.05
-epsilon = 1.0
-alpha = 0.1
+
 tot_epoch = 200
 
 accuracy_metric = 'Recall'
@@ -18,6 +17,9 @@ beyond_accuracy_metric = 'Novelty'
 x_axes = sorted(results[results['Epoch'] >= (tot_epoch / 2 + 25)]['Epoch'].unique())
 
 results = results[(results['LearnRate'] == lr) & (results['TotEpoch'] == tot_epoch) & (results['Top-K']==top_k)]
+
+epsilon = results[(results['Model']=='amf') & (results[accuracy_metric] == max(results[(results['Model']=='amf')][accuracy_metric]))]['Epsilon'].values[0]
+alpha = results[(results['Model']=='amf') & (results[accuracy_metric] == max(results[(results['Model']=='amf')][accuracy_metric]))]['Alpha'].values[0]
 
 y_recall_bprmf = []
 for x in x_axes:

@@ -2,6 +2,7 @@ import sys
 import os
 import pandas as pd
 import numpy as np
+import time
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -20,7 +21,7 @@ from src.evaluation.metrics import compute_gini, get_head_tail_split, catalog_co
     average_coverage_of_long_tail_items, ranking_based_statistical_parity, ranking_based_equal_opportunity, ndcg_at
 from src.util.plot import plot_item_popularity, plot_item_popularity_by_recommendation_frequency, \
     plot_embedding_norm_by_item_popularity, plot_item_popularity_by_recommendation_score
-
+from src.util.timer import timer
 
 def run():
     args = eval_bias_parse_args()
@@ -61,17 +62,25 @@ def run():
         print('Short Head', compute_gini(item_pop[:short_head_split]))
         print('Long Tail', compute_gini(item_pop[short_head_split:]))
 
-        plot_item_popularity(item_pop, short_head_split, os.path.join(cfg.output_rec_plot_dir, cfg.item_popularity_plot))
+        plot_item_popularity(item_pop, short_head_split,
+                             os.path.join(cfg.output_rec_plot_dir, cfg.item_popularity_plot))
 
         path_rec_list = cfg.output_rec_list_dir.format(dataset)
 
         list_of_test = get_list_of_test(test)
         list_of_training = get_list_of_training(train, test[cfg.user_field].unique())
 
+        num_file = len(os.listdir(path_rec_list))
+        for directory_of_trained_models in os.listdir(path_rec_list):
+            num_file += len(os.listdir(os.path.join(path_rec_list, directory_of_trained_models)))
+
+        i = 1
         for directory_of_trained_models in os.listdir(path_rec_list):
             for name_of_prediction_list in os.listdir(os.path.join(path_rec_list, directory_of_trained_models)):
+                start_file = time.time()
                 # if 'fgsm' not in name_of_prediction_list:
                 print('\tEvaluate {} on'.format(name_of_prediction_list))
+
                 predictions = read_prediction_lists(
                     os.path.join(os.path.join(path_rec_list, directory_of_trained_models, name_of_prediction_list)))
                 for k in args.list_k:
@@ -106,11 +115,12 @@ def run():
 
                     # # Proposed by Ziwei Zhu et al. -> Lower values indicate the recommendations are less biased
                     # # # Ranking-based Statistical Parity (RSP)
-                    p_pop, p_tail, rsp, _, _, _ = ranking_based_statistical_parity(list_of_predictions, list_of_training,
-                                                                          short_head_items, long_tail_items)
+                    p_pop, p_tail, rsp, _, _, _ = ranking_based_statistical_parity(list_of_predictions,
+                                                                                   list_of_training,
+                                                                                   short_head_items, long_tail_items)
                     # # # Ranking-based Equal Opportunity (REO)
                     pc_pop, pc_tail, reo, _, _, _ = ranking_based_equal_opportunity(list_of_predictions, list_of_test,
-                                                                           short_head_items, long_tail_items)
+                                                                                    short_head_items, long_tail_items)
 
                     # if 'bprmf' in name_of_prediction_list:
                     #     plot_item_popularity_by_recommendation_frequency(name_of_prediction_list, original, predictions, item_pop, dataset, num_users, k)
@@ -148,7 +158,11 @@ def run():
                         }, ignore_index=True
                     )
 
-        df_evaluation_bias.sort_values(by=['Model', 'EmbK', 'TotEpoch', 'LearnRate', 'Epsilon', 'Alpha', 'Top-K', 'Epoch'])
+                print('\t{0}/{1} in {2} seconds.'.format(i, num_file, timer(start_file, time.time())))
+                i += 1
+
+        df_evaluation_bias.sort_values(
+            by=['Model', 'EmbK', 'TotEpoch', 'LearnRate', 'Epsilon', 'Alpha', 'Top-K', 'Epoch'])
         df_evaluation_bias[cfg.column_order].to_csv(os.path.join(cfg.output_rec_bias_dir, cfg.bias_results), index=None)
 
         print('Completed the Bias evaluation on Dataset: {0}'.format(dataset))

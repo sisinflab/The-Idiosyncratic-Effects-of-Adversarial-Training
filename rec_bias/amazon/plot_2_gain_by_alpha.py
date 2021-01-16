@@ -5,7 +5,7 @@ import numpy as np
 # results = pd.read_csv('[Amazon] Gain on TOP-10.csv')
 results = pd.read_csv('bias_results.csv')
 
-top_k = 10
+top_k = 50
 lr = 0.05
 # epsilon = 1.0
 # alpha = 0.1
