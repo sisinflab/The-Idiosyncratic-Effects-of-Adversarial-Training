@@ -74,6 +74,8 @@ def run():
         for directory_of_trained_models in os.listdir(path_rec_list):
             num_file += len(os.listdir(os.path.join(path_rec_list, directory_of_trained_models)))
 
+        print('Number of files under evaluation: {0}'.format(num_file))
+
         i = 1
         for directory_of_trained_models in os.listdir(path_rec_list):
             for name_of_prediction_list in os.listdir(os.path.join(path_rec_list, directory_of_trained_models)):
