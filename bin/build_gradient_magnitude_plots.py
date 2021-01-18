@@ -98,11 +98,11 @@ def run():
                                                              path_output_rec_result.split('/')[-2]))
 
     print('Start the Generation of the Probability by Training Epochs on BPR-MF')
-    # generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes)
+    generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes)
 
     print('Start the Generation of the Probability by Training Epochs on AMF')
-    # generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
-    #                                               adv_positive_gradient_magnitudes)
+    generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+                                                  adv_positive_gradient_magnitudes)
 
     print(
         'Start the Generation of the SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
@@ -140,7 +140,7 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
     plt.xlabel('Training Epochs')
     plt.ylabel('Probability')
     plt.legend()
-
+    plt.ylim(0, 1)
     # plt.show()
     plt.savefig(
         '{0}{1}-bprmf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
@@ -200,7 +200,7 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
     plt.xlabel('Training Epochs')
     plt.ylabel('Probability')
     plt.legend()
-
+    plt.ylim(0, 1)
     # plt.show()
     plt.savefig(
         '{0}{1}-bprmf-amf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
@@ -254,8 +254,6 @@ def generate_plot_sum_of_update_of_advers_grad_magn(dataset, path_output_rec_res
                 elif item_id in long_tail_items:
                     sum_update_long_tail += per_item_update
                     num_update_long_tail += 1
-                else:
-                    raise Exception
         for item_id in adv_positive_gradient_magnitudes[epoch].keys():
             for per_item_update in adv_positive_gradient_magnitudes[epoch][item_id]:
                 # import math
@@ -267,8 +265,6 @@ def generate_plot_sum_of_update_of_advers_grad_magn(dataset, path_output_rec_res
                 elif item_id in long_tail_items:
                     sum_update_long_tail += per_item_update
                     num_update_long_tail += 1
-                else:
-                    raise Exception
         y_axes_short_head.append(sum_update_short_head)
         y_axes_long_tail.append(sum_update_long_tail)
 
@@ -291,13 +287,13 @@ def generate_plot_sum_of_update_of_advers_grad_magn(dataset, path_output_rec_res
                 # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001) + 0.0000000000000001)  # *-1
                 # per_item_update = 1 - 1 / (1 + math.exp(-z))
                 if item_id in short_head_items:
-                    sum_update_short_head += per_item_update  # *-1
+                    sum_update_short_head += per_item_update * -1
                     num_update_short_head += 1
                 elif item_id in long_tail_items:
-                    sum_update_long_tail += per_item_update  # *-1
+                    sum_update_long_tail += per_item_update * -1
                     num_update_long_tail += 1
-                else:
-                    raise Exception
+                # else:
+                #     raise Exception
         for item_id in adv_negative_gradient_magnitudes[epoch].keys():
             for per_item_update in adv_negative_gradient_magnitudes[epoch][item_id]:
                 per_item_update *= -1  # Cast to Positive Value
@@ -305,13 +301,13 @@ def generate_plot_sum_of_update_of_advers_grad_magn(dataset, path_output_rec_res
                 # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001) + 0.0000000000000001)  # *-1
                 # per_item_update = 1 - 1 / (1 + math.exp(-z))
                 if item_id in short_head_items:
-                    sum_update_short_head += per_item_update  # *-1
+                    sum_update_short_head += per_item_update * -1
                     num_update_short_head += 1
                 elif item_id in long_tail_items:
-                    sum_update_long_tail += per_item_update  # *-1
+                    sum_update_long_tail += per_item_update * -1
                     num_update_long_tail += 1
-                else:
-                    raise Exception
+                # else:
+                #     raise Exception
         y_axes_short_head.append(sum_update_short_head)
         y_axes_long_tail.append(sum_update_long_tail)
 

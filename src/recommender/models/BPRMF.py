@@ -58,7 +58,7 @@ class BPRMF(RecommenderModel):
         # Method to create delta locations for the adv. perturbations
         self.set_delta()
 
-        self.optimizer = tf.keras.optimizers.Adagrad(learning_rate=self.learning_rate)
+        self.optimizer = tf.keras.optimizers.SGD(learning_rate=self.learning_rate)
 
     def set_delta(self, delta_init=0):
         """
