@@ -1,6 +1,8 @@
 import sys
 import os
 import numpy as np
+import matplotlib
+matplotlib.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -97,18 +99,26 @@ def run():
             '{0}{1}-adv_negative_gradient_magnitudes'.format(path_output_rec_result,
                                                              path_output_rec_result.split('/')[-2]))
 
-    print('Start the Generation of the Probability by Training Epochs on BPR-MF')
-    generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes)
-
-    print('Start the Generation of the Probability by Training Epochs on AMF')
-    generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
-                                                  adv_positive_gradient_magnitudes)
+    # print('Start the Generation of the Probability by Training Epochs on BPR-MF')
+    # generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes)
+    #
+    # print('Start the Generation of the Probability by Training Epochs on AMF')
+    # generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+    #                                               adv_positive_gradient_magnitudes)
+    #
+    # print(
+    #     'Start the Generation of the SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
+    # generate_plot_sum_of_update_of_advers_grad_magn(args.dataset, path_output_rec_result, positive_gradient_magnitudes,
+    #                                                 adv_positive_gradient_magnitudes, negative_gradient_magnitudes,
+    #                                                 adv_negative_gradient_magnitudes)
 
     print(
-        'Start the Generation of the SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
-    generate_plot_sum_of_update_of_advers_grad_magn(args.dataset, path_output_rec_result, positive_gradient_magnitudes,
-                                                    adv_positive_gradient_magnitudes, negative_gradient_magnitudes,
-                                                    adv_negative_gradient_magnitudes)
+        'Start the Generation of the Differences SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
+    generate_plot_differences_of_update_of_advers_grad_magn(args.dataset, path_output_rec_result,
+                                                            positive_gradient_magnitudes,
+                                                            adv_positive_gradient_magnitudes,
+                                                            negative_gradient_magnitudes,
+                                                            adv_negative_gradient_magnitudes)
 
 
 def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes):
@@ -320,6 +330,164 @@ def generate_plot_sum_of_update_of_advers_grad_magn(dataset, path_output_rec_res
 
     plt.savefig(
         '{0}{1}-bprmf-amf-until{2}-sum-update.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
+                                                          num_epochs), format='png')
+
+
+def generate_plot_differences_of_update_of_advers_grad_magn(dataset, path_output_rec_result,
+                                                            positive_gradient_magnitudes,
+                                                            adv_positive_gradient_magnitudes,
+                                                            negative_gradient_magnitudes,
+                                                            adv_negative_gradient_magnitudes):
+    train, test = read_data(dataset)
+
+    # Split in Short Head, Long Tail, and Distant Tail
+    item_pop = train.groupby([cfg.item_field]).count().sort_values(cfg.user_field, ascending=False)[cfg.user_field]
+    dict_item_pop = dict(zip(item_pop.index, item_pop.to_list()))
+
+    num_users, num_items, num_ratings = get_data_statistics(train, test)
+
+    # Add the items not in the training
+    for item_id in set(range(num_items)).difference(set(item_pop.index)):
+        dict_item_pop[item_id] = 0
+
+    short_head_split = get_head_tail_split(item_pop, num_items)
+
+    short_head_items = np.array(item_pop[:short_head_split].index)
+    long_tail_items = np.array(item_pop[short_head_split:].index)
+
+    plt.figure()
+
+    num_epochs = len(list(positive_gradient_magnitudes.keys()))
+    x_axes = sorted(list(positive_gradient_magnitudes.keys()))
+    # [num_epochs // 2:]
+    # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
+
+    print('\tPlotting Positive Grad. Magnitude for Short Head and Long Tail Items')
+    # We have 2 y-axes. One for each threshold.
+    y_axes_short_head = []
+    y_axes_long_tail = []
+    for epoch in x_axes:
+        sum_update_short_head = 0
+        sum_update_long_tail = 0
+        num_update_short_head = 0
+        num_update_long_tail = 0
+        for item_id in positive_gradient_magnitudes[epoch].keys():
+            for per_item_update in positive_gradient_magnitudes[epoch][item_id]:
+                # import math
+                # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001))  # *-1
+                # per_item_update = 1 - 1 / (1 + math.exp(-z))
+                if item_id in short_head_items:
+                    sum_update_short_head += per_item_update
+                    num_update_short_head += 1
+                elif item_id in long_tail_items:
+                    sum_update_long_tail += per_item_update
+                    num_update_long_tail += 1
+        try:
+            for item_id in adv_positive_gradient_magnitudes[epoch].keys():
+                for per_item_update in adv_positive_gradient_magnitudes[epoch][item_id]:
+                    # import math
+                    # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001) + 0.0000000000000001 )  # *-1
+                    # per_item_update = 1 - 1 / (1 + math.exp(-z))
+                    if item_id in short_head_items:
+                        sum_update_short_head += per_item_update
+                        num_update_short_head += 1
+                    elif item_id in long_tail_items:
+                        sum_update_long_tail += per_item_update
+                        num_update_long_tail += 1
+        except:
+            print('Epoch {} not in adversarial.'.format(epoch))
+
+        y_axes_short_head.append(sum_update_short_head)
+        y_axes_long_tail.append(sum_update_long_tail)
+
+    print('\tRemove Negative Grad. Magnitude for Short Head and Long Tail Items')
+    for epoch in x_axes:
+        sum_update_short_head = 0
+        sum_update_long_tail = 0
+        num_update_short_head = 0
+        num_update_long_tail = 0
+        for item_id in negative_gradient_magnitudes[epoch].keys():
+            for per_item_update in negative_gradient_magnitudes[epoch][item_id]:
+                per_item_update *= -1  # Cast to Positive Value
+                # import math
+                # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001) + 0.0000000000000001)  # *-1
+                # per_item_update = 1 - 1 / (1 + math.exp(-z))
+                if item_id in short_head_items:
+                    sum_update_short_head += per_item_update * -1
+                    num_update_short_head += 1
+                elif item_id in long_tail_items:
+                    sum_update_long_tail += per_item_update * -1
+                    num_update_long_tail += 1
+                # else:
+                #     raise Exception
+        try:
+            for item_id in adv_negative_gradient_magnitudes[epoch].keys():
+                for per_item_update in adv_negative_gradient_magnitudes[epoch][item_id]:
+                    per_item_update *= -1  # Cast to Positive Value
+                    # import math
+                    # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001) + 0.0000000000000001)  # *-1
+                    # per_item_update = 1 - 1 / (1 + math.exp(-z))
+                    if item_id in short_head_items:
+                        sum_update_short_head += per_item_update * -1
+                        num_update_short_head += 1
+                    elif item_id in long_tail_items:
+                        sum_update_long_tail += per_item_update * -1
+                        num_update_long_tail += 1
+        except:
+            print('Epoch {} not in adversarial.'.format(epoch))
+        # y_axes_short_head[epoch - 1] = y_axes_short_head[epoch - 1] + sum_update_short_head
+        # y_axes_long_tail[epoch - 1] = y_axes_long_tail[epoch - 1] + sum_update_long_tail
+        y_axes_short_head[epoch - 1] = (y_axes_short_head[epoch - 1] + sum_update_short_head)/len(short_head_items)
+        y_axes_long_tail[epoch - 1] = (y_axes_long_tail[epoch - 1] + sum_update_long_tail)/len(long_tail_items)
+
+    plt.plot(x_axes, y_axes_short_head, '-', color='orange', label=r'$I_{SH}$')
+    plt.plot(x_axes, y_axes_long_tail, '-', color='blue', label=r'$I_{LT}$')
+
+    y_min = min(y_axes_short_head) if min(y_axes_short_head) < min(y_axes_long_tail) else min(y_axes_long_tail)
+    y_max = max(y_axes_short_head) if max(y_axes_short_head) > max(y_axes_long_tail) else max(y_axes_long_tail)
+    plt.vlines(int(num_epochs // 2) + 1, ymin=y_min, ymax=y_max, color='red', linestyles='solid')
+
+    plt.xlabel('Training Epochs')
+    plt.ylabel(r'Avg. Updates')
+    plt.legend()
+
+    plt.savefig(
+        '{0}{1}-bprmf-amf-until{2}-sum-final-update.png'.format(path_output_rec_result,
+                                                                path_output_rec_result.split('/')[-2],
+                                                                num_epochs), format='png')
+
+    plt.close()
+
+    plt.figure()
+    plt.plot(x_axes[:int(num_epochs // 2)], y_axes_short_head[:int(num_epochs // 2)], '-', color='orange',
+             label=r'$I_{SH}$')
+    plt.plot(x_axes[:int(num_epochs // 2)], y_axes_long_tail[:int(num_epochs // 2)], '-', color='blue',
+             label=r'$I_{LT}$')
+
+    plt.xlabel('Training Epochs')
+    plt.ylabel(r'Avg. Updates')
+    plt.legend()
+
+    plt.savefig(
+        '{0}{1}-bprmf-until{2}-sum-final-update.png'.format(path_output_rec_result,
+                                                            path_output_rec_result.split('/')[-2],
+                                                            num_epochs), format='png')
+
+    plt.close()
+
+    plt.figure()
+    plt.plot(x_axes[int(num_epochs // 2):], y_axes_short_head[int(num_epochs // 2):], '-', color='orange',
+             label=r'$I_{SH}$')
+    plt.plot(x_axes[int(num_epochs // 2):], y_axes_long_tail[int(num_epochs // 2) :], '-', color='blue',
+             label=r'$I_{LT}$')
+
+    plt.xlabel('Training Epochs')
+    plt.ylabel(r'Avg. Updates')
+    plt.legend()
+
+    plt.savefig(
+        '{0}{1}-amf-until{2}-sum-final-update.png'.format(path_output_rec_result,
+                                                          path_output_rec_result.split('/')[-2],
                                                           num_epochs), format='png')
 
 

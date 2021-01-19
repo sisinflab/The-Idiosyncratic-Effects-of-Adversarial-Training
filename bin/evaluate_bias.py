@@ -23,6 +23,7 @@ from src.util.plot import plot_item_popularity, plot_item_popularity_by_recommen
     plot_embedding_norm_by_item_popularity, plot_item_popularity_by_recommendation_score
 from src.util.timer import timer
 
+
 def run():
     args = eval_bias_parse_args()
     print_args(args)
@@ -88,6 +89,7 @@ def run():
                     predictions = read_prediction_lists(
                         os.path.join(os.path.join(path_rec_list, directory_of_trained_models, name_of_prediction_list)))
                     for k in args.list_k:
+                        k = float(k)
                         print('\t\tK={}'.format(k))
                         list_of_predictions = get_list_of_predictions(predictions, test[cfg.user_field].unique(), k)
 
@@ -121,10 +123,13 @@ def run():
                         # # # Ranking-based Statistical Parity (RSP)
                         p_pop, p_tail, rsp, _, _, _ = ranking_based_statistical_parity(list_of_predictions,
                                                                                        list_of_training,
-                                                                                       short_head_items, long_tail_items)
+                                                                                       short_head_items,
+                                                                                       long_tail_items)
                         # # # Ranking-based Equal Opportunity (REO)
-                        pc_pop, pc_tail, reo, _, _, _ = ranking_based_equal_opportunity(list_of_predictions, list_of_test,
-                                                                                        short_head_items, long_tail_items)
+                        pc_pop, pc_tail, reo, _, _, _ = ranking_based_equal_opportunity(list_of_predictions,
+                                                                                        list_of_test,
+                                                                                        short_head_items,
+                                                                                        long_tail_items)
 
                         # if 'bprmf' in name_of_prediction_list:
                         #     plot_item_popularity_by_recommendation_frequency(name_of_prediction_list, original, predictions, item_pop, dataset, num_users, k)
