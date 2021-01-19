@@ -89,7 +89,7 @@ def run():
                     predictions = read_prediction_lists(
                         os.path.join(os.path.join(path_rec_list, directory_of_trained_models, name_of_prediction_list)))
                     for k in args.list_k:
-                        k = float(k)
+                        k = int(k)
                         print('\t\tK={}'.format(k))
                         list_of_predictions = get_list_of_predictions(predictions, test[cfg.user_field].unique(), k)
 
