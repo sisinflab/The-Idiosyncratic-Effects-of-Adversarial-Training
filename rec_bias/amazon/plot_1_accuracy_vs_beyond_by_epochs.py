@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
 import pandas as pd
 

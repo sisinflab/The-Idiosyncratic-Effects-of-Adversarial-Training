@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -105,7 +107,7 @@ for beyond_accuracy_metric in ['Novelty', 'Coverage', 'ARP']:
     # plt.xlim(-0.1, 0.1)
     # plt.ylim(-0.1, 0.1)
 
-    plt.hlines(0, xmin=-0.25, xmax=0.25, colors=['grey'], )
+    plt.hlines(0, xmin=-0.25, xmax=0.25, colors=['grey'] )
     plt.vlines(0, ymin=-0.25, ymax=0.25, colors=['grey'])
 
     plt.legend()

@@ -1,9 +1,15 @@
 import sys
 import os
-import numpy as np
 import matplotlib
+
 matplotlib.rcParams['text.usetex'] = True
+matplotlib.rcParams.update({'font.size': 22})
+
 import matplotlib.pyplot as plt
+
+plt.rcParams['xtick.labelsize'] = 22
+plt.rcParams['ytick.labelsize'] = 22
+import numpy as np
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -105,6 +111,12 @@ def run():
     # print('Start the Generation of the Probability by Training Epochs on AMF')
     # generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
     #                                               adv_positive_gradient_magnitudes)
+
+    #
+    # print('Start the Generation of the Probability by Training Epochs on BPR-MF and AMF')
+    # generate_plot_probability_of_grad_magn_plus_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+    #                                                              adv_positive_gradient_magnitudes)
+
     #
     # print(
     #     'Start the Generation of the SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
@@ -145,10 +157,11 @@ def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_grad
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold], label='Grad. Magnitude < {}'.format(threshold))
+        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold],
+                 label=r'$p(\omega)$' + r'$<$ {0}'.format(threshold), linewidth=2)
 
-    plt.xlabel('Training Epochs')
-    plt.ylabel('Probability')
+    plt.xlabel(r'Training Epochs $(t)$')
+    plt.ylabel(r'Probability')
     plt.legend()
     plt.ylim(0, 1)
     # plt.show()
@@ -184,7 +197,8 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
                     num_update += 1
             y_axes.append(num_updated_under_threshold / num_update)
 
-        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold], label='Grad. Magnitude < {}'.format(threshold))
+        plt.plot(x_axes, y_axes, '-', color=color_thresholds[threshold],
+                 label=r'$p(\omega)$' + r'$<$ {0}'.format(threshold), linewidth=2)
 
     for threshold in thresholds:
         print('\tPlotting for threshold: {} (Adversarial Setting)'.format(threshold))
@@ -205,16 +219,95 @@ def generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positi
             y_axes.append(num_updated_under_threshold / num_update)
 
         plt.plot(x_axes, y_axes, '--', color=color_thresholds[threshold],
-                 label='Adv. Grad. Magnitude < {}'.format(threshold))
+                 label=r'$p(\omega^{adv})$' + r'$<$ {0}'.format(threshold), linewidth=2)
 
-    plt.xlabel('Training Epochs')
-    plt.ylabel('Probability')
+    plt.xlabel(r'Training Epochs $(t)$')
+    plt.ylabel(r'Probability')
     plt.legend()
     plt.ylim(0, 1)
     # plt.show()
     plt.savefig(
         '{0}{1}-bprmf-amf-until{2}-prob-iter.png'.format(path_output_rec_result, path_output_rec_result.split('/')[-2],
                                                          num_epochs), format='png')
+    plt.close()
+
+
+def generate_plot_probability_of_grad_magn_plus_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+                                                                 adv_positive_gradient_magnitudes):
+    plt.figure()
+    num_epochs = len(list(positive_gradient_magnitudes.keys()))
+    x_axes = sorted(list(positive_gradient_magnitudes.keys()))
+    # x_axes = sorted(list(positive_gradient_magnitudes.keys()))
+
+    thresholds = [0.01, 0.1, 0.5]
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+
+    for threshold in thresholds:
+        print('\tPlotting for threshold: {}'.format(threshold))
+        # We have 2 y-axes. One for each threshold.
+        y_axes_bpr = []
+        y_axes_apr = []
+
+        for epoch in x_axes:
+            bpr_num_update = 0
+            bpr_num_updated_under_threshold = 0
+            for item_id in positive_gradient_magnitudes[epoch].keys():
+                for per_item_update in positive_gradient_magnitudes[epoch][item_id]:
+                    # import math
+                    # z = math.log(per_item_update / (1 - per_item_update + 0.0000000000000001))  # *-1
+                    # per_item_update = 1 - 1 / (1 + math.exp(-z))
+                    if per_item_update < threshold:
+                        bpr_num_updated_under_threshold += 1
+                    bpr_num_update += 1
+            y_axes_bpr.append(bpr_num_updated_under_threshold / bpr_num_update)
+
+            apr_num_update = 0
+            apr_num_updated_under_threshold = 0
+            for item_id in adv_positive_gradient_magnitudes[epoch].keys():
+                for per_item_update in adv_positive_gradient_magnitudes[epoch][item_id]:
+                    # import math
+                    # z = math.log(
+                    #     per_item_update / (1 - per_item_update + 0.0000000000000001) + 0.0000000000000001)  # *-1
+                    # per_item_update = 1 - 1 / (1 + math.exp(-z))
+                    if per_item_update < threshold:
+                        apr_num_updated_under_threshold += 1
+                    apr_num_update += 1
+            if apr_num_update > 0:
+                y_axes_apr.append(apr_num_updated_under_threshold / apr_num_update)
+
+        l1, = ax.plot(x_axes, y_axes_bpr, '-', color=color_thresholds[threshold],
+                 label=r'$p(\omega)$' + r'$<$ {0}'.format(threshold), linewidth=2)
+        l2, = ax.plot(x_axes[100:], y_axes_apr, '--', color=color_thresholds[threshold],
+                 label=r'$p(\omega^{adv})$' + r'$<$ {0}'.format(threshold), linewidth=2)
+
+    plt.xlabel(r'Training Epochs ($t$)')
+    plt.ylabel(r'Probability')
+    # plt.legend()
+    # box = ax.get_position()
+    # ax.set_position([box.x0, box.y0 + box.height * 0.1,
+    #                  box.width, box.height * 0.9])
+    #
+    # # Put a legend below current axis
+    # ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15),
+    #           fancybox=True, shadow=True, ncol=2)
+
+    plt.ylim(0, 1)
+    plt.vlines(int(num_epochs / 2), ymin=0, ymax=1, colors=['red'], linewidth=3)
+
+    xticks = np.arange(0, num_epochs + 1, step=50)
+    plt.tight_layout()
+    plt.xticks(xticks)
+    # xticks[10] = r'$T_{BPR}=100$'
+    # xticks[-1] = r'$T_{APR}=200$'
+    # plt.xticklabels(xticks)
+
+    # plt.show()
+    plt.savefig(
+        '{0}{1}-bprmf-amf-together-ep{2}-prob-iter.png'.format(path_output_rec_result,
+                                                               path_output_rec_result.split('/')[-2],
+                                                               num_epochs), format='png', bbox_inches='tight', pad_inches=0, dpi=600)
     plt.close()
 
 
@@ -278,8 +371,8 @@ def generate_plot_sum_of_update_of_advers_grad_magn(dataset, path_output_rec_res
         y_axes_short_head.append(sum_update_short_head)
         y_axes_long_tail.append(sum_update_long_tail)
 
-    plt.plot(x_axes, y_axes_short_head, '-', color='black', label='Positive Update SH')
-    plt.plot(x_axes, y_axes_long_tail, '-', color='red', label='Positive Update LT')
+    plt.plot(x_axes, y_axes_short_head, '-', color='black', label=r'Positive Update on $I_{SH}$')
+    plt.plot(x_axes, y_axes_long_tail, '-', color='red', label=r'Positive Update on $I_{LT}$')
 
     print('\tPlotting Negative Grad. Magnitude for Short Head and Long Tail Items')
     # We have 2 y-axes. One for each threshold.
@@ -437,19 +530,22 @@ def generate_plot_differences_of_update_of_advers_grad_magn(dataset, path_output
             print('Epoch {} not in adversarial.'.format(epoch))
         # y_axes_short_head[epoch - 1] = y_axes_short_head[epoch - 1] + sum_update_short_head
         # y_axes_long_tail[epoch - 1] = y_axes_long_tail[epoch - 1] + sum_update_long_tail
-        y_axes_short_head[epoch - 1] = (y_axes_short_head[epoch - 1] + sum_update_short_head)/len(short_head_items)
-        y_axes_long_tail[epoch - 1] = (y_axes_long_tail[epoch - 1] + sum_update_long_tail)/len(long_tail_items)
+        y_axes_short_head[epoch - 1] = (y_axes_short_head[epoch - 1] + sum_update_short_head) / len(short_head_items)
+        y_axes_long_tail[epoch - 1] = (y_axes_long_tail[epoch - 1] + sum_update_long_tail) / len(long_tail_items)
 
-    plt.plot(x_axes, y_axes_short_head, '-', color='orange', label=r'$I_{SH}$')
-    plt.plot(x_axes, y_axes_long_tail, '-', color='blue', label=r'$I_{LT}$')
+    plt.plot(x_axes, y_axes_short_head, '--', color='orange', label=r'$I_{SH}$', linewidth=3)
+    plt.plot(x_axes, y_axes_long_tail, '-', color='blue', label=r'$I_{LT}$', linewidth=3)
 
     y_min = min(y_axes_short_head) if min(y_axes_short_head) < min(y_axes_long_tail) else min(y_axes_long_tail)
     y_max = max(y_axes_short_head) if max(y_axes_short_head) > max(y_axes_long_tail) else max(y_axes_long_tail)
-    plt.vlines(int(num_epochs // 2) + 1, ymin=y_min, ymax=y_max, color='red', linestyles='solid')
+    plt.vlines(int(num_epochs // 2), ymin=y_min + y_min * 0.1, ymax=y_max + y_max * 0.1, ls='-.', color='red',
+               linestyles='solid', linewidth=3)
 
-    plt.xlabel('Training Epochs')
-    plt.ylabel(r'Avg. Updates')
+    plt.xlabel('Training Epochs $(t)$')
+    plt.ylabel('Avg. Updates')
     plt.legend()
+
+    plt.tight_layout()
 
     plt.savefig(
         '{0}{1}-bprmf-amf-until{2}-sum-final-update.png'.format(path_output_rec_result,
@@ -460,11 +556,11 @@ def generate_plot_differences_of_update_of_advers_grad_magn(dataset, path_output
 
     plt.figure()
     plt.plot(x_axes[:int(num_epochs // 2)], y_axes_short_head[:int(num_epochs // 2)], '-', color='orange',
-             label=r'$I_{SH}$')
+             label=r'$I_{SH}$', linewidth=2)
     plt.plot(x_axes[:int(num_epochs // 2)], y_axes_long_tail[:int(num_epochs // 2)], '-', color='blue',
-             label=r'$I_{LT}$')
+             label=r'$I_{LT}$', linewidth=2)
 
-    plt.xlabel('Training Epochs')
+    plt.xlabel(r'Training Epochs $(t)$')
     plt.ylabel(r'Avg. Updates')
     plt.legend()
 
@@ -477,18 +573,19 @@ def generate_plot_differences_of_update_of_advers_grad_magn(dataset, path_output
 
     plt.figure()
     plt.plot(x_axes[int(num_epochs // 2):], y_axes_short_head[int(num_epochs // 2):], '-', color='orange',
-             label=r'$I_{SH}$')
-    plt.plot(x_axes[int(num_epochs // 2):], y_axes_long_tail[int(num_epochs // 2) :], '-', color='blue',
-             label=r'$I_{LT}$')
+             label=r'$I_{SH}$', linewidth=2)
+    plt.plot(x_axes[int(num_epochs // 2):], y_axes_long_tail[int(num_epochs // 2):], '-', color='blue',
+             label=r'$I_{LT}$', linewidth=2)
 
-    plt.xlabel('Training Epochs')
+    plt.xlabel(r'Training Epochs $(t)$')
     plt.ylabel(r'Avg. Updates')
+    plt.tight_layout()
     plt.legend()
 
     plt.savefig(
         '{0}{1}-amf-until{2}-sum-final-update.png'.format(path_output_rec_result,
                                                           path_output_rec_result.split('/')[-2],
-                                                          num_epochs), format='png')
+                                                          num_epochs), format='png', bbox_inches='tight', pad_inches=0, dpi=600)
 
 
 if __name__ == '__main__':

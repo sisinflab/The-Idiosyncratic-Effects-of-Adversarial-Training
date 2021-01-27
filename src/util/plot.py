@@ -26,19 +26,19 @@ def preprocess_x_y(x, y):
 
 
 def plot_item_popularity(item_pop, head_tail_split, path_name):
-    plt.rcParams.update({'font.size': 12})
+    plt.rcParams.update({'font.size': 20})
     plt.figure(figsize=(6, 3.5))
 
     plt.xlabel('Items ranked by popularity')
-    plt.ylabel('Number of ratings in the dataset')
-    plt.plot(range(head_tail_split), item_pop.values[:head_tail_split], lw=3, alpha=0.7, label=r'Short Head')
-    plt.plot(range(head_tail_split, len(item_pop.index)), item_pop.values[head_tail_split:], lw=3, label=r'Long Tail')
+    plt.ylabel('Number of feedback')
+    plt.plot(range(head_tail_split), item_pop.values[:head_tail_split], '-', lw=3, alpha=0.7, label='Short Head')
+    plt.plot(range(head_tail_split, len(item_pop.index)), item_pop.values[head_tail_split:], '--', lw=3, label='Long Tail')
     plt.axvline(x=head_tail_split, linestyle='--', lw=1, c='grey')
     plt.xlim([-25, len(item_pop.index)])
     plt.ylim([-25, item_pop.values[0]])
     plt.legend()
     plt.tight_layout()
-    plt.savefig(path_name)
+    plt.savefig(path_name, format='png', bbox_inches='tight', pad_inches=0, dpi=600)
     plt.close()
 
 
@@ -63,7 +63,8 @@ def plot_item_popularity_by_recommendation_frequency(key, original, predictions,
     x = np.array(x) / num_users
     plt.scatter(x, y, label='AMF' if dataset in ['movielens', 'lastfm'] else 'AMR', alpha=0.75)
 
-    pred_item_pop = original.groupby([cfg.item_field]).count().sort_values(cfg.user_field, ascending=False)[cfg.user_field]
+    pred_item_pop = original.groupby([cfg.item_field]).count().sort_values(cfg.user_field, ascending=False)[
+        cfg.user_field]
     dict_pred_item_pop = dict(zip(pred_item_pop.index, pred_item_pop.to_list()))
 
     x = sorted(item_pop.to_list())
