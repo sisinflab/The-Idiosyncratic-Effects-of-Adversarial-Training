@@ -33,6 +33,11 @@ color_thresholds = {
     0.5: 'black'
 }
 
+marker_thresholds = {
+    0.01: 'o',
+    0.1: '*',
+    0.5: '^'
+}
 
 def run():
     args = build_gradient_magnitude_plot_parse_args()
@@ -113,9 +118,9 @@ def run():
     #                                               adv_positive_gradient_magnitudes)
 
     #
-    # print('Start the Generation of the Probability by Training Epochs on BPR-MF and AMF')
-    # generate_plot_probability_of_grad_magn_plus_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
-    #                                                              adv_positive_gradient_magnitudes)
+    print('Start the Generation of the Probability by Training Epochs on BPR-MF and AMF')
+    generate_plot_probability_of_grad_magn_plus_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
+                                                                 adv_positive_gradient_magnitudes)
 
     #
     # print(
@@ -124,13 +129,13 @@ def run():
     #                                                 adv_positive_gradient_magnitudes, negative_gradient_magnitudes,
     #                                                 adv_negative_gradient_magnitudes)
 
-    print(
-        'Start the Generation of the Differences SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
-    generate_plot_differences_of_update_of_advers_grad_magn(args.dataset, path_output_rec_result,
-                                                            positive_gradient_magnitudes,
-                                                            adv_positive_gradient_magnitudes,
-                                                            negative_gradient_magnitudes,
-                                                            adv_negative_gradient_magnitudes)
+    # print(
+    #     'Start the Generation of the Differences SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
+    # generate_plot_differences_of_update_of_advers_grad_magn(args.dataset, path_output_rec_result,
+    #                                                         positive_gradient_magnitudes,
+    #                                                         adv_positive_gradient_magnitudes,
+    #                                                         negative_gradient_magnitudes,
+    #                                                         adv_negative_gradient_magnitudes)
 
 
 def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes):
@@ -307,7 +312,7 @@ def generate_plot_probability_of_grad_magn_plus_advers_grad_magn(path_output_rec
     plt.savefig(
         '{0}{1}-bprmf-amf-together-ep{2}-prob-iter.png'.format(path_output_rec_result,
                                                                path_output_rec_result.split('/')[-2],
-                                                               num_epochs), format='png', bbox_inches='tight', pad_inches=0, dpi=600)
+                                                               num_epochs), format='png', bbox_inches='tight', pad_inches=0)
     plt.close()
 
 
@@ -538,7 +543,7 @@ def generate_plot_differences_of_update_of_advers_grad_magn(dataset, path_output
 
     y_min = min(y_axes_short_head) if min(y_axes_short_head) < min(y_axes_long_tail) else min(y_axes_long_tail)
     y_max = max(y_axes_short_head) if max(y_axes_short_head) > max(y_axes_long_tail) else max(y_axes_long_tail)
-    plt.vlines(int(num_epochs // 2), ymin=y_min + y_min * 0.1, ymax=y_max + y_max * 0.1, ls='-.', color='red',
+    plt.vlines(int(num_epochs // 2), ymin=y_min + y_min * 0.1, ymax=y_max + y_max * 0.1, color='red',
                linestyles='solid', linewidth=3)
 
     plt.xlabel('Training Epochs $(t)$')
