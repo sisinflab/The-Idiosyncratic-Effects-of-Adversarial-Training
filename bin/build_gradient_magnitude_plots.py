@@ -117,7 +117,6 @@ def run():
     # generate_plot_probability_of_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
     #                                               adv_positive_gradient_magnitudes)
 
-    #
     print('Start the Generation of the Probability by Training Epochs on BPR-MF and AMF')
     generate_plot_probability_of_grad_magn_plus_advers_grad_magn(path_output_rec_result, positive_gradient_magnitudes,
                                                                  adv_positive_gradient_magnitudes)
@@ -129,13 +128,13 @@ def run():
     #                                                 adv_positive_gradient_magnitudes, negative_gradient_magnitudes,
     #                                                 adv_negative_gradient_magnitudes)
 
-    # print(
-    #     'Start the Generation of the Differences SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
-    # generate_plot_differences_of_update_of_advers_grad_magn(args.dataset, path_output_rec_result,
-    #                                                         positive_gradient_magnitudes,
-    #                                                         adv_positive_gradient_magnitudes,
-    #                                                         negative_gradient_magnitudes,
-    #                                                         adv_negative_gradient_magnitudes)
+    print(
+        'Start the Generation of the Differences SUM of Positive and Negative Update by Training Epochs on AMF for Short Head and Log Tail Items')
+    generate_plot_differences_of_update_of_advers_grad_magn(args.dataset, path_output_rec_result,
+                                                            positive_gradient_magnitudes,
+                                                            adv_positive_gradient_magnitudes,
+                                                            negative_gradient_magnitudes,
+                                                            adv_negative_gradient_magnitudes)
 
 
 def generate_plot_probability_of_grad_magn(path_output_rec_result, positive_gradient_magnitudes):

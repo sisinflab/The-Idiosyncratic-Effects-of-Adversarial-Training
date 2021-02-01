@@ -5,12 +5,12 @@ This file presents the reproducibility details of the paper. **Beyond-Accuracy R
 - [Requirements](#requirements)
 - [Datasets](#datasets)
 - [Reproducibility Details](#reproducibility-details)
-  - [Image classification and feature extraction](#1-image-classification-and-feature-extraction)
-  - [Recommendations generation](#2-recommendations-generation)
-  - [Visual attacks](#3-visual-attacks)
-  - [Recommendations generation after attack](#4-recommendations-generation-after-attack)
-  - [Attack Success Rate and Feature Loss](#5-attack-success-rate-and-feature-loss)
-  - [EXTRA: script input parameters](#extra-script-input-parameters)
+  - [Training of the BPR-MF](#1-training-of-the-bpr-mf)
+  - [Training of the APR-MF](#2-recommendations-generation)
+  - [Performance Evaluation](#3-performance-evaluation)
+  - [Statistical Test](#4-statistical-test)
+- [Reproduce the Wine-Glass Phenomenon](#reproduce-the-wine-glass-phenomenon)
+- [Simulate Adversarial Perturbation](#simulate-adversarial-perturbation)
 
 
 ## Requirements
@@ -34,133 +34,100 @@ pip install -r requirements.txt
 ## Datasets
 The tested datasets across the paper experiments are reported in the following table.
 
-|       Dataset      |   # Users   | # Products   |  # Feedback   | Density | *p(i|I<sub>SH</sub>)* | *p(i|I<sub>LT</sub>)* |
-| ------------------ | ----------- | ------------ | ------------- | --------| --------------------- | --------------------- | 
-|     Amazon Men     |    934      | 1,682        |  99,999       | 0.00630 | 0.6452                | 0.3548                 |
+|       Dataset      |   # Users   | # Products   |  # Feedback   | Density | p(i,I<sub>SH</sub>) | p(i,I<sub>LT</sub>) |
+| ------------------ |:-----------:| ------------| ------------- | --------| --------------------- | --------------------- | 
+|     ML100K     |    934        | 1,682        |  99,999       | 0.0630 | 0.6452                | 0.3548                |
+|     Last.fm    |    1,892      | 17,632       |  92,834       | 0.0028 | 0.7893                | 0.2107                |
+|     Amazon     |    3,915      | 2,549        |  77,328       | 0.0077 | 0.5747                | 0.4253                |
+|     ML1M       |    6,040      | 3,706        |  1,000,209    | 0.0447 | 0.6512                | 0.3488                |
+|     Yelp       |    25,677     | 25,815       |  731,671      | 0.0011 | 0.6544                | 0.3456                |
 
+The training and test datasets are available at ```./data/<dataset_name>/``` with the format
+```
+user-Id [TAB] item-Id [TAB] score [TAB] timestamp
+```
+ All the experiments are reproducible on any other dataset split following the ```leave-one-out``` protocol and naming the files as ```trainingset.tsc``` and ```testset.tsv```.
 
 ## Reproducibility Details
 
-### 1. Training of the BPR-MF models.
-The first step is to train the 
+### 1. Training of the BPR-MF
+The first step is to train the baseline recommender model with BPR
 ```
-python classify_extract.py \
-  --dataset <dataset_name> \
-  --defense 0 \
-  --gpu <gpu_id>
+python train_rec.py \
+  --gpu -1 \
+  --dataset <data-name> \
+  --rec bprmf \
+  --epochs T-APR \
+  --restore_epochs 0 \
+  --embed_size <emb-k>\
+  --lr <learning-rate> \
+  --reg <regularization-term> \
+  --k <top-k> \
+  --verbose <epoch-to-store-results> 
 ```
-If you want to classify images with a defended model (i.e., Adversarial Training or Free Adversarial Training), run the following
-```
-python classify_extract.py \
-  --dataset <dataset_name> \
-  --gpu <gpu_id> \
-  --defense 1 \
-  --model_dir <model_name> \
-  --model_file <model_filename>
-```
-This will produce ```classes.csv``` and ```features.npy```, which is a ```N X 2048``` float32 array corresponding to the extracted features for all ```N``` images. The two files are saved to ```./data/<dataset_name>/original/``` when no defense is applied, otherwise they are saved to ```./data/<dataset_name>/<model_name>_original/```. 
+Changing the hyper-parameters following the details presented in the paper it is possible to generate all the initial BPR-F models.
+The script will print the performance on ```k```-length recommendation lists. Comparing the performance it is possible to identify the hyper-parameters combination of the best (most accurate) BPR model. Note that we train the BPR model for T<sub>APR</sub> epochs to be fair in comparing BPR with AMR.
 
-### 2. Recommendations generation
-After this initial step, run the following command to train one of the available recommender models based on the extracted visual features:
-
+### 2. Training of APR-MF
+After having selected the best model based on ```lr, reg, embK```, we can start the training by varying teh adversarial regularization coefficient ```alpha``` and the perturbation budget ```epsilon```.
 ```
-python rec_generator.py \
-  --dataset <dataset_name> \
-  --gpu <gpu_id> \
-  --experiment_name <full_experiment_name> \
-  --epoch <num_training_epochs> \
-  --verbose <show_results_each_n_epochs> \
-  --topk 150
+python train_rec.py \
+  --gpu -1 \
+  --dataset <data-name> \
+  --rec amf \
+  --epochs T-APR \
+  --restore_epochs T-BPR \
+  --embed_size <emb-k>\
+  --lr <learning-rate> \
+  --reg <regularization-term> \
+  --k <top-k> \
+  --list_adv_eps 0.01 0.1 1.0 10 \
+  --list_adv_reg 0.001 0.01 0.1 1 10 \
+  --verbose <epoch-to-store-results> 
 ```
-The recommeder models will be stored in ```./rec_model_weights/<dataset_name>/``` and the top-150 recommendation lists for each users will be saved in ```./rec_results/<dataset_name>/```. 
+At the end of the training of these models, we can select the best APR-MF.
 
-Extract the proposed rank-based metrics (CHR@K and nCDCG@K) you can execute the following command:
+### 3. Performance Evaluation
+To measure all the results that we repor tin tha paper, we can execute the following command
 ```
-python evaluate_rec.py \
-  --dataset <dataset_name> \
-  --metric <ncdcg or chr> \
-  --experiment_name <full_experiment_name> \
-  -- origin <original_class_id> \
-  --topk 150 \
-  --analyzed_k <metric_k>
+python evaluate_bias.py \
+  --datasets <dataset_name> \
+  --list_k 10 50 100
 ```
+At the end of this command, the following file will be created with all the measured metrics on all the list of recommendations generated by the previous training. 
 
-Results will be stored in ```./chr/<dataset_name>/``` and ```./ncdcg/<dataset_name>/``` in ```.tsv``` format. At this point, you can select from the extracted category-based metrics the origin-target pair of ids to execute the explored VAR attack scenario.
+The file is ```.\rec_bias\<dataset_name>\rec_bias.csv```.
 
-### 3. Visual attacks
-**\*\*IMPORTANT\*\*** Apparently, there is a recent issue about CleverHans not being compatible with Tensorflow Addons (see [here](https://stackoverflow.com/questions/63896793/cleverhans-is-incompatible-with-tensorflow-addons)). As there is one script within CleverHans (i.e., ```cleverhans/attacks/spsa.py```) which imports tensorflow addons, a very rough (but effective) way to make it run is to comment out that line of code. More sophisticated solutions will be proposed in the future. <br>
-Based upon the produced recommendation lists, choose an **origin** and a **target** class for each dataset. Then, run one of the available **targeted** attacks:
+### 4. Statistical Test
+After having selected the best BPR-MF and APR-MF models, we can compute the statistical significance test by executing the following command
 ```
-python classify_extract_attack.py \
-  --dataset <dataset_name>  \
-  --attack_type <attack_name> \
-  [ATTACK_PARAMETERS] \
-  --origin_class <zero_indexed_origin_class> \
-  --target_class <zero_indexed_target_class> \
-  --defense 0 \
-  --gpu <gpu_id>
-```
-If you want to run an attack on a defended model, this is the command to run:
-```
-python classify_extract_attack.py \
-  --dataset <dataset_name> \
-  --attack_type <attack_name> \
-  [ATTACK_PARAMETERS] \
-  --origin_class <zero_indexed_origin_class> \
-  --target_class <zero_indexed_target_class> \
-  --defense 1 \
-  --model_dir <model_name> \
-  --model_file <model_filename> \
-  --gpu <gpu_id>
-```
-This will produce (i) all attacked images, saved in ```tiff``` format to ```./data/<dataset_name>/<full_experiment_name>/images/``` and (ii) ```classes.csv``` and ```features.npy```. 
-
-### 4. Recommendations generation after attack
-Generate the recommendation lists for the produced visual attacks as specified in [Recommendations generation](#2-recommendations-generation).
-
-### 5. Attack Success Rate and Feature Loss
-In order to generate the attack Success Rate (SR) for each attack/defense combination, run the following script:
-```
-python -u evaluate_attack.py [SAME PARAMETERS SEEN FOR classify_extract_attack.py]
-```
-this will produce the text file ```./data/<dataset_name>/<full_experiment_name>/success_results.txt```, which contains the average SR results.
-
-Then, to generate the Feature Loss (FL) for each attack/defense combination, run the following script:
-```
-python -u feature_loss.py [SAME PARAMETERS SEEN FOR classify_extract_attack.py]
-```
-this will generate the text file ```./data/<dataset_name>/full_experiment_name>/features_dist_avg_all_attack.txt``` with the average FL results, and the csv file ```./data/<dataset_name>/<full_experiment_name>/features_dist_all_attack.csv``` with the FL results for each attacked image. 
-
-### EXTRA: script input parameters
-```
-# Possible values for 'dataset', 'defense', 'model_dir', 'model_file'
---dataset: {
-    amazon_men 
-    amazon_women
-    tradesy
-}
-
---defense : {
-    0 # non-defended model
-    1 # defended model
-}
-
---model_dir : {
-    madry # free adversarial training
-    free_adv # free adversarial training
-}
-
---model_file : {
-    imagenet_linf_4.pt # adversarial training model filename
-    model_best.pth.tar # free adversarial_training model filename
-}
-
-----------------------------------------------------------------------------------
-
-# [ATTACK_PARAMETERS]
---eps # epsilon
---l # L norm
-
-# All other attack parameters are hard-coded. Can be set as input parameters, too.
+python t-test_evaluate_bias.py \
+ --datasets <dataste_name> \
+ --file_a <bpr-rec-list-name> \
+ --files_b <apr-rec-list-name
 ```
 
+This script will store the statistical test results in ```.\rec_bias\<dataset_name>\ttest_bias_reuslts.csv```.
+
+## Reproduce the Wine-Glass Phenomenon
+To reproduce the ***Wine-Glass Phenomenon*** described in the paper its is necessary to execute the following script that automatically produces the figure shown in the paper.
+```
+python build_gradient_magnitude_plots.py \
+ --dataset <dataset_name> \
+ --rec amf \
+ --epochs T-APR \
+ --adv_eps <eps-of-the-best-model> \
+ --adv_reg <alpha-of-the-best-model> \
+ --gpu -1 
+```
+At the end of the training the plots will be stored as ```png``` files in the following directory ```.\rec_result\<dataset_name>\build_>model_name>\```.
+
+## Simulate Adversarial Perturbation
+We have also implemented the code to simulat ethe adversarial perturbation of a trained model. 
+```
+python run_attack.py \
+  --list_adv_attack_eps 0.001 0.01 
+```
+where we have to pass all the model parameters on which we want to test the adversarial perturbation, e.g., the one defined in the previous steps, and the list of perturbation magnitude to explore.
+
+The log file will present the performance variations following the method of [Adversarial Personalized Ranking for Recommendation](https://arxiv.org/pdf/1808.03908.pdf) by He et al.
