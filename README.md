@@ -3,17 +3,15 @@ This file presents the reproducibility details of the paper. **Beyond-Accuracy R
 
 **Table of Contents:**
 - [Requirements](#requirements)
-- [Reproduce paper results](#reproduce-paper-results)
+- [Datasets](#datasets)
+- [Reproducibility Details](#reproducibility-details)
   - [Image classification and feature extraction](#1-image-classification-and-feature-extraction)
   - [Recommendations generation](#2-recommendations-generation)
   - [Visual attacks](#3-visual-attacks)
   - [Recommendations generation after attack](#4-recommendations-generation-after-attack)
   - [Attack Success Rate and Feature Loss](#5-attack-success-rate-and-feature-loss)
   - [EXTRA: script input parameters](#extra-script-input-parameters)
-- [Datasets, pre-trained defense models and attack parameters](#datasets-pre-trained-defense-models-and-attack-parameters)
-  - [Datasets](#datasets)
-  - [Pre-trained defended models](#pre-trained-defense-models)
-  - [Attack parameters](#attack-parameters)
+
 
 ## Requirements
 
@@ -27,44 +25,24 @@ After having clone this repository with
 ```
 git clone repo-name
 ```
-we suggest to create e virtual environment install the required Python dependencies with the following commands
+we suggest creating e virtual environment install the required Python dependencies with the following commands
 ```
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+## Datasets
+The tested datasets across the paper experiments are reported in the following table.
 
-To download and place correctly all datasets, run the bash script ```download_datasets.sh```.
+|       Dataset      |   # Users   | # Products   |  # Feedback   | Density | *p(i|I<sub>SH</sub>)* | *p(i|I<sub>LT</sub>)* |
+| ------------------ | ----------- | ------------ | ------------- | --------| --------------------- | --------------------- | 
+|     Amazon Men     |    934      | 1,682        |  99,999       | 0.00630 | 0.6452                | 0.3548                 |
 
-This will create the following directory tree:
-```
-./data
-  amazon_men/
-    original/
-       images/
-        0.jpg
-        1.jpg
-        ...
-  amazon_women/
-    original/
-      images/
-        0.jpg
-        1.jpg
-        ...
-  tradesy/
-    original/
-      images/
-        0.jpg
-        1.jpg
-        ...
-```
 
-## Reproduce paper results
+## Reproducibility Details
 
-Here we describe the steps to reproduce the results presented in the paper. [Here](#extra-script-input-parameters) we explain in depth some of the script input parameters we use.
-
-### 1. Image classification and feature extraction
-First of all, classify all images from one of the three datasets and extract high-level features by running:
+### 1. Training of the BPR-MF models.
+The first step is to train the 
 ```
 python classify_extract.py \
   --dataset <dataset_name> \
@@ -185,29 +163,4 @@ this will generate the text file ```./data/<dataset_name>/full_experiment_name>/
 
 # All other attack parameters are hard-coded. Can be set as input parameters, too.
 ```
-
-## Datasets, pre-trained defense models and attack parameters
-### Datasets
-
-|       Dataset      |    ***k-cores***   | # Users   | # Products   |  # Feedback   |
-| ------------------ | ------------------ | ------------------ | ------------------ | ------------------ |
-|     Amazon Men     |      5 | 24,379 | 7,371 | 89,020  |
-|    Amazon Women    |   10 | 16,668 | 2,981 | 54,473  |
-|      Tradesy       |   10 | 6,253 | 1,670 | 21,533 |
-
-[Click here](https://drive.google.com/file/d/1_daGmkBRqv5z201rNUAW1R3C29rPqBEL/view?usp=sharing) to download datasets.
-
-### Pre-trained defense models
-|              Model name                 | Description |           Link          |
-| --------------------------------------- |-------------|-------------------------|
-|    Adversarial Training ([Madry et al.](https://arxiv.org/pdf/1706.06083.pdf))  | <ul><li>model: ResNet50</li><li>dataset: ImageNet</li><li>attack: PGD (epsilon = 4)</li></ul> | [click here](https://github.com/MadryLab/robustness#pretrained-models)|    
-|       Free Adversarial Training ([Shafai et al.](https://arxiv.org/pdf/1904.12843.pdf))          | <ul><li>model: ResNet50</li><li>dataset: ImageNet</li><li>attack: FGSM (epsilon = 4)</li><li>other parameters:<ul><li>m = 4</li></ul></li></ul> | [click here](https://gofile.io/d/ZfjwxQ) |
-
-### Attack parameters
-All attacks are implemented with [CleverHans](https://github.com/tensorflow/cleverhans).
-| Attack name                                                      | Parameters                                                                                                     |
-|------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| FGSM ([Goodfellow et al.](https://arxiv.org/pdf/1412.6572.pdf))    | <ul><li>epsilon = {4, 8} (rescaled by 255)</li></ul>                                                                           |
-| PGD ([Madry et al.](https://arxiv.org/pdf/1706.06083.pdf))         | <ul><li>epsilon = {4, 8} (rescaled by 255)</li><li>alpha = epsilon / 6</li><li>iterations = 10</li></ul>                             |
-| C & W ([Carlini and Wagner](https://arxiv.org/pdf/1608.04644.pdf)) | <ul><li>binary steps = 5</li><li>initial c = 10e-2</li><li>confidence = 0</li><li>iterations = 1000</li><li>learning rate = 5e-3</li></ul> |
 
