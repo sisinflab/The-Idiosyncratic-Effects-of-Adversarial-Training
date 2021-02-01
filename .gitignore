@@ -26,3 +26,6 @@ pip-selfcheck.json
 /rec_plot/
 /rec_plot/
 /src/recommender/models/AMF_old.py
+plot_1_accuracy_vs_beyond_by_epochs.py
+plot_2_gain_by_alpha.py
+plot_3_pareto.py
