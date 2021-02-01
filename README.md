@@ -11,7 +11,8 @@ This file presents the reproducibility details of the paper. **Beyond-Accuracy R
   - [Statistical Test](#4-statistical-test)
 - [Reproduce the Wine-Glass Phenomenon](#reproduce-the-wine-glass-phenomenon)
 - [Simulate Adversarial Perturbation](#simulate-adversarial-perturbation)
-
+- [Full Results](#full-results)
+- [Contact](#contact)
 
 ## Requirements
 
@@ -131,3 +132,11 @@ python run_attack.py \
 where we have to pass all the model parameters on which we want to test the adversarial perturbation, e.g., the one defined in the previous steps, and the list of perturbation magnitude to explore.
 
 The log file will present the performance variations following the method of [Adversarial Personalized Ranking for Recommendation](https://arxiv.org/pdf/1808.03908.pdf) by He et al.
+
+##Full Results
+
+We have published all the recommendation results collected on the grid search training in the ```.\rec_bias``` directory for each tested dataset.
+
+## Contact
+
+* Anonymized
