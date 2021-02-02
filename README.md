@@ -1,5 +1,5 @@
-# Beyond-Accuracy Reduction and Bias Amplification in Adversarial Personalized Ranking
-This file presents the reproducibility details of the paper. **Beyond-Accuracy Reduction and Bias Amplification in Adversarial Personalized Ranking** submitted at SIGIR 2021 (Submission-id: 135)
+# Characterizing the Bias Amplification and Beyond-Accuracy Reduction in Adversarial Personalized Ranking
+This file presents the reproducibility details of the paper. **Characterizing the Bias Amplification and Beyond-Accuracy Reduction in Adversarial Personalized Ranking** submitted at SIGIR 2021 (Submission-id: 135)
 
 **Table of Contents:**
 - [Requirements](#requirements)
