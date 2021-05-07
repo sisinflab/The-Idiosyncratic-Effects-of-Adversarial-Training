@@ -1,5 +1,6 @@
-# Characterizing the Bias Amplification and Beyond-Accuracy Reduction in Adversarial Personalized Ranking
-This file presents the reproducibility details of the paper. **Characterizing the Bias Amplification and Beyond-Accuracy Reduction in Adversarial Personalized Ranking** submitted at SIGIR 2021 (Submission-id: 135)
+# Understanding the Effects of Adversarial Personalized Ranking Optimization Method on Beyond-Accuracy Recommendation Quality
+
+This file presents the reproducibility details of the paper. **CUnderstanding the Effects of Adversarial Personalized Ranking Optimization Method on Beyond-Accuracy Recommendation Quality** submitted at RecSys 2021
 
 **Table of Contents:**
 - [Requirements](#requirements)
