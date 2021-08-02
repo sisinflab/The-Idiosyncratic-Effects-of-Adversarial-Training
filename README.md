@@ -140,8 +140,8 @@ We have published all the recommendation results collected on the grid search tr
 
 ## Authors
 * Vito Walter Anelli (vitowalter.anelli@poliba.it)
-* Felice Antonio Merra<sup id="a1">[*](#f1)</sup> (felice.merra@poliba.it)
 * Tommaso Di Noia (tommaso.dinoia@poliba.it)
+* Felice Antonio Merra<sup id="a1">[*](#f1)</sup> (felice.merra@poliba.it)
 
 <b id="f1"><sup>*</sup></b> Corresponding author
 
