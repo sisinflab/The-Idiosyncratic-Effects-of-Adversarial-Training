@@ -1,6 +1,6 @@
 # Understanding the Effects of Adversarial Personalized Ranking Optimization Method on Beyond-Accuracy Recommendation Quality
 
-This file presents the reproducibility details of the paper. **CUnderstanding the Effects of Adversarial Personalized Ranking Optimization Method on Beyond-Accuracy Recommendation Quality** submitted at RecSys 2021
+This file presents the reproducibility details of the paper. **The Idiosyncratic Effects of Adversarial Training on Bias in Personalized Recommendation Learning** published at RecSys 2021 LBR Track.
 
 **Table of Contents:**
 - [Requirements](#requirements)
@@ -138,6 +138,10 @@ The log file will present the performance variations following the method of [Ad
 
 We have published all the recommendation results collected on the grid search training in the ```.\rec_bias``` directory for each tested dataset.
 
-## Contact
+## Authors
+* Vito Walter Anelli (vitowalter.anelli@poliba.it)
+* Felice Antonio Merra<sup id="a1">[*](#f1)</sup> (felice.merra@poliba.it)
+* Tommaso Di Noia (tommaso.dinoia@poliba.it)
 
-* Anonymized
+<b id="f1"><sup>*</sup></b> Corresponding author
+
