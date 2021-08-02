@@ -1,4 +1,4 @@
-# Understanding the Effects of Adversarial Personalized Ranking Optimization Method on Beyond-Accuracy Recommendation Quality
+# The Idiosyncratic Effects of Adversarial Training on Bias in Personalized Recommendation Learning
 
 This file presents the reproducibility details of the paper. **The Idiosyncratic Effects of Adversarial Training on Bias in Personalized Recommendation Learning** published at RecSys 2021 LBR Track.
 
